@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Check, Sparkles, Clock, AlertCircle, Play, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Check, Sparkles, Clock, AlertCircle, Play, ChevronDown, ChevronUp, Loader2, FastForward, Pause } from 'lucide-react';
 import { TaskItem, Subtask } from '../types';
 import { playMechanicalClick, playQuestComplete, playChiptuneBeep } from '../utils/audio';
 
@@ -18,6 +18,8 @@ interface TaskPlannerProps {
   onDeleteTask: (id: string) => void;
   onBreakdownTask: (taskId: string) => Promise<void>;
   onStartFocusOnTask: (task: TaskItem) => void;
+  onPostponeTask?: (taskId: string) => void;
+  onInterruptTask?: (taskId: string, elapsedMinutes?: number, remainingMinutes?: number) => void;
   soundEnabled: boolean;
   isBreakingDownId: string | null;
 }
@@ -30,6 +32,8 @@ export const TaskPlanner: React.FC<TaskPlannerProps> = ({
   onDeleteTask,
   onBreakdownTask,
   onStartFocusOnTask,
+  onPostponeTask,
+  onInterruptTask,
   soundEnabled,
   isBreakingDownId,
 }) => {
@@ -293,10 +297,32 @@ export const TaskPlanner: React.FC<TaskPlannerProps> = ({
                           </span>
 
                           <span className="text-[#2D3142]/40" aria-hidden="true">·</span>
-                          <span className="font-mono text-[10px] text-[#2D3142]/80">~{task.estimatedMinutes}m</span>
+                          <span className="font-mono text-[10px] text-[#2D3142]/80">
+                            {task.remainingMinutes !== undefined
+                              ? `~${task.remainingMinutes}m left (${task.estimatedMinutes}m est)`
+                              : `~${task.estimatedMinutes}m`}
+                          </span>
 
                           <span className="text-[#2D3142]/40" aria-hidden="true">·</span>
                           <span className="font-mono text-[10px] text-[#2D3142]/80">+{task.staminaPoints} SP</span>
+
+                          {task.status === 'interrupted' && (
+                            <>
+                              <span className="text-[#2D3142]/40" aria-hidden="true">·</span>
+                              <span className="font-mono text-[9px] font-bold px-1.5 py-0.2 bg-[#F8C390] text-[#8E4E14] border border-[#2D3142] rounded-2xs">
+                                ⏸ Interrupted
+                              </span>
+                            </>
+                          )}
+
+                          {task.postponeCount && task.postponeCount > 0 ? (
+                            <>
+                              <span className="text-[#2D3142]/40" aria-hidden="true">·</span>
+                              <span className="font-mono text-[9px] font-bold px-1.5 py-0.2 bg-[#E4DFD5] text-[#2D3142]/80 border border-[#2D3142] rounded-2xs">
+                                ⏭ Postponed ({task.postponeCount}x)
+                              </span>
+                            </>
+                          ) : null}
                         </div>
 
                         {/* Notes if any */}
@@ -321,6 +347,21 @@ export const TaskPlanner: React.FC<TaskPlannerProps> = ({
                           >
                             <span>{completedSubtasks}/{task.subtasks.length} Steps</span>
                             {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                          </button>
+                        )}
+
+                        {onPostponeTask && !task.completed && (
+                          <button
+                            id={`postpone-task-${task.id}`}
+                            onClick={() => {
+                              playMechanicalClick(soundEnabled);
+                              onPostponeTask(task.id);
+                            }}
+                            title="Postpone this task (deprioritizes in adaptive schedule)"
+                            className="pixel-btn min-h-[36px] px-2 py-1 bg-[#FAF8F5] hover:bg-[#F8C390] text-[#2D3142] rounded-xs border border-[#2D3142]/40 font-mono text-[11px] font-bold flex items-center gap-1"
+                          >
+                            <FastForward className="w-3.5 h-3.5 text-[#E07A5F]" />
+                            <span className="hidden sm:inline">Postpone</span>
                           </button>
                         )}
 

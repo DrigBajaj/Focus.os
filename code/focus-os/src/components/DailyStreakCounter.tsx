@@ -211,7 +211,7 @@ export const DailyStreakCounter: React.FC<DailyStreakCounterProps> = ({
               </div>
               <div className="grid grid-cols-7 gap-1 text-center font-mono">
                 {dayNames.map((name, idx) => {
-                  const isMet = streakDays[idx] !== undefined ? streakDays[idx] : idx < 6;
+                  const isMet = streakDays[idx] ?? false;
                   const isToday = idx === 6;
                   const metEffective = isToday ? isTodayTargetMet : isMet;
 

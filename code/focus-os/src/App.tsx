@@ -30,6 +30,9 @@ import {
 import { loadFontSettings, saveFontSettings, applyFontSettingsToDOM } from './utils/fontSettings';
 import { getCurrentPetStage } from './data/petEvolutions';
 import { calculateDailyStreak, recordStreakTargetMet } from './utils/streak';
+import { ScheduleChangeEvent } from './types';
+import { createScheduleEvent } from './utils/adaptiveScheduler';
+import { authApi, dataApi, getStoredToken, setStoredToken, getStoredUser } from './services/apiClient';
 
 export default function App() {
   // Active Screen Tab
@@ -52,11 +55,44 @@ export default function App() {
 
   // Authenticated User & Portal state - Defaults to null to present standalone Login/Signup screen
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
-    const saved = localStorage.getItem('cozy_pixel_current_user');
-    return saved ? JSON.parse(saved) : null;
+    return getStoredUser();
   });
 
   const [logoutNotice, setLogoutNotice] = useState<string | null>(null);
+
+  // Validate session token on server upon app initialization
+  useEffect(() => {
+    const token = getStoredToken();
+    if (token) {
+      authApi.verifySession().then(({ ok, user }) => {
+        if (ok && user) {
+          setCurrentUser(user);
+          // Sync persisted tasks from database
+          dataApi.fetchTasks().then((dbTasks) => {
+            if (dbTasks && dbTasks.length > 0) {
+              setTasks(dbTasks);
+            }
+          });
+          dataApi.fetchRoutines().then((dbRoutines) => {
+            if (dbRoutines && dbRoutines.length > 0) {
+              setRoutines(dbRoutines);
+            }
+          });
+          dataApi.fetchCompanionState().then((state) => {
+            if (state) {
+              if (state.availableMinutes !== undefined) setAvailableMinutes(state.availableMinutes);
+              if (state.pet) setPet(state.pet);
+              if (state.activityLog) setActivityLog(state.activityLog);
+              if (state.scratchpad !== undefined) setScratchpad(state.scratchpad);
+            }
+          });
+        } else if (!ok && getStoredUser()) {
+          setCurrentUser(null);
+          setLogoutNotice('Your session has expired. Please sign in again.');
+        }
+      });
+    }
+  }, []);
 
   // Audio settings
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
@@ -72,6 +108,17 @@ export default function App() {
     const saved = localStorage.getItem('cozy_pixel_tasks_v2');
     return saved ? JSON.parse(saved) : INITIAL_TASKS;
   });
+
+  // Available Time Window (Adaptive Scheduling)
+  const [availableMinutes, setAvailableMinutes] = useState<number>(() => {
+    const saved = localStorage.getItem('cozy_pixel_available_mins');
+    return saved ? JSON.parse(saved) : 30;
+  });
+
+  // Last Schedule Disruption Event for explainable rescheduling
+  const [lastScheduleEvent, setLastScheduleEvent] = useState<ScheduleChangeEvent | null>(() =>
+    createScheduleEvent('initial', 'Schedule initialized based on current priority and duration')
+  );
 
   // Recurring Daily Routines
   const [routines, setRoutines] = useState<RoutineItem[]>(() => {
@@ -174,6 +221,36 @@ export default function App() {
     localStorage.setItem('cozy_pixel_scratchpad_v2', scratchpad);
   }, [scratchpad]);
 
+  useEffect(() => {
+    localStorage.setItem('cozy_pixel_available_mins', JSON.stringify(availableMinutes));
+  }, [availableMinutes]);
+
+  // Synchronize tasks to persistent database whenever changed while logged in
+  useEffect(() => {
+    if (currentUser && getStoredToken()) {
+      dataApi.syncTasks(tasks);
+    }
+  }, [tasks, currentUser]);
+
+  // Synchronize routines to persistent database
+  useEffect(() => {
+    if (currentUser && getStoredToken()) {
+      dataApi.syncRoutines(routines);
+    }
+  }, [routines, currentUser]);
+
+  // Synchronize companion data to persistent database
+  useEffect(() => {
+    if (currentUser && getStoredToken()) {
+      dataApi.saveCompanionState({
+        availableMinutes,
+        pet,
+        activityLog,
+        scratchpad,
+      });
+    }
+  }, [availableMinutes, pet, activityLog, scratchpad, currentUser]);
+
   // Ambient rain noise handler
   const handleToggleAmbient = () => {
     const next = !ambientNoise;
@@ -239,8 +316,10 @@ export default function App() {
         // If today just met or exceeded the daily focus target:
         if (prevMins < dailyTarget && newMins >= dailyTarget) {
           playVictoryFanfare(soundEnabled);
-          const computed = calculateDailyStreak(copy, dailyTarget);
-          recordStreakTargetMet(computed.currentStreak);
+          const computed = calculateDailyStreak(copy, currentUser?.id ?? 'guest', dailyTarget);
+          if (currentUser?.id) {
+            recordStreakTargetMet(computed.currentStreak, currentUser.id);
+          }
           setStreakToast({
             streak: computed.currentStreak,
             minutes: newMins,
@@ -302,10 +381,12 @@ export default function App() {
           level: newMins >= 60 ? 3 : newMins >= 30 ? 2 : 1,
         };
 
-        const computed = calculateDailyStreak(copy, dailyTarget);
-        recordStreakTargetMet(computed.currentStreak);
+        const computed = calculateDailyStreak(copy, currentUser?.id ?? 'guest', dailyTarget);
 
         if (prevMins < dailyTarget && newMins >= dailyTarget) {
+          if (currentUser?.id) {
+            recordStreakTargetMet(computed.currentStreak, currentUser.id);
+          }
           playVictoryFanfare(soundEnabled);
           setStreakToast({
             streak: computed.currentStreak,
@@ -341,6 +422,80 @@ export default function App() {
     setCurrentTab('focus');
   };
 
+  // Update Available Window & Trigger Rescheduling
+  const handleUpdateAvailableMinutes = (minutes: number) => {
+    const prev = availableMinutes;
+    setAvailableMinutes(minutes);
+    setLastScheduleEvent(
+      createScheduleEvent('time_changed', `Available time window changed from ${prev}m to ${minutes}m`, {
+        previousMinutes: prev,
+        newMinutes: minutes,
+      })
+    );
+  };
+
+  // Postpone task -> Demotes task and recalculates next best recommendation
+  const handlePostponeTask = (taskId: string) => {
+    const target = tasks.find((t) => t.id === taskId);
+    if (!target) return;
+    const nextCount = (target.postponeCount || 0) + 1;
+
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              status: 'postponed',
+              postponeCount: nextCount,
+              lastPostponedAt: Date.now(),
+            }
+          : t
+      )
+    );
+
+    setLastScheduleEvent(
+      createScheduleEvent(
+        'task_postponed',
+        `"${target.title}" was postponed (${nextCount}x); schedule recalculated`,
+        { taskId, taskTitle: target.title }
+      )
+    );
+  };
+
+  // Interrupt task -> Preserves remaining work and makes task eligible for future recommendations
+  const handleInterruptTask = (taskId: string, elapsedMinutes?: number, remainingMinutes?: number) => {
+    const target = tasks.find((t) => t.id === taskId);
+    if (!target) return;
+    const estimated = target.estimatedMinutes || 25;
+    const currentRemaining = target.remainingMinutes ?? estimated;
+    const finalRemaining =
+      remainingMinutes !== undefined
+        ? Math.max(1, remainingMinutes)
+        : Math.max(1, currentRemaining - (elapsedMinutes || 0));
+
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              status: 'interrupted',
+              remainingMinutes: finalRemaining,
+              interruptedAt: Date.now(),
+              actualMinutesSpent: (t.actualMinutesSpent || 0) + (elapsedMinutes || 0),
+            }
+          : t
+      )
+    );
+
+    setLastScheduleEvent(
+      createScheduleEvent(
+        'task_interrupted',
+        `"${target.title}" interrupted; ~${finalRemaining}m work preserved`,
+        { taskId, taskTitle: target.title, newMinutes: finalRemaining }
+      )
+    );
+  };
+
   // Toggle task complete -> Rewards work XP & Harvests 1 Treat into bag!
   const handleToggleTask = (id: string) => {
     setTasks((prev) =>
@@ -355,7 +510,7 @@ export default function App() {
               const expGain = 15;
               const newExp = p.exp + expGain;
               const nextLevel = newExp >= p.maxExp ? p.level + 1 : p.level;
-              const evolved = nextLevel > p.level;
+              const evolved = nextLevel > prevLevel(p, nextLevel);
 
               if (evolved) {
                 playVictoryFanfare(soundEnabled);
@@ -391,13 +546,34 @@ export default function App() {
               }
               return copy;
             });
+
+            // Trigger Adaptive Rescheduling recalculation for task completion
+            setLastScheduleEvent(
+              createScheduleEvent('task_completed', `Completed "${t.title}"; next priority scheduled`, {
+                taskId: t.id,
+                taskTitle: t.title,
+              })
+            );
+          } else {
+            // Re-opened task
+            setLastScheduleEvent(
+              createScheduleEvent('task_uncompleted', `Re-opened "${t.title}" in schedule`, {
+                taskId: t.id,
+                taskTitle: t.title,
+              })
+            );
           }
-          return { ...t, completed: nextCompleted };
+          return { ...t, completed: nextCompleted, status: nextCompleted ? 'completed' : 'pending' };
         }
         return t;
       })
     );
   };
+
+  // Helper for evolution check
+  function prevLevel(p: PetState, nextLevel: number) {
+    return p.level;
+  }
 
   // Toggle subtask complete
   const handleToggleSubtask = (taskId: string, subtaskId: string) => {
@@ -448,13 +624,23 @@ export default function App() {
       priority,
       deadline,
       estimatedMinutes,
+      remainingMinutes: estimatedMinutes,
       staminaPoints,
       completed: false,
       category,
       subtasks: [],
       createdAt: Date.now(),
+      status: 'pending',
+      postponeCount: 0,
     };
     setTasks((prev) => [newTask, ...prev]);
+
+    setLastScheduleEvent(
+      createScheduleEvent('task_added', `New task added: "${title}"`, {
+        taskId: newTask.id,
+        taskTitle: title,
+      })
+    );
   };
 
   // Delete task
@@ -463,6 +649,11 @@ export default function App() {
     if (activeFocusTask?.id === id) {
       setActiveFocusTask(null);
     }
+    setLastScheduleEvent(
+      createScheduleEvent('task_deleted', 'Task removed from schedule', {
+        taskId: id,
+      })
+    );
   };
 
   // AI Task Decomposition (/api/breakdown)
@@ -606,29 +797,53 @@ export default function App() {
   // User Authentication Handlers
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await authApi.logout();
     } catch {
       // Offline fallback
     }
-    localStorage.removeItem('cozy_pixel_current_user');
     setCurrentUser(null);
-    setLogoutNotice('Cartridge ejected safely! Your progress has been safely stored in memory.');
+    setStoredToken(null);
+    setLogoutNotice('Cartridge ejected safely! Your session has been revoked and progress stored in database.');
     playMechanicalClick(soundEnabled);
   };
 
-  const handleLoginSuccess = (user: AuthUser, isNewUser: boolean) => {
+  const handleLoginSuccess = async (user: AuthUser, isNewUser: boolean, token?: string) => {
     setCurrentUser(user);
-    localStorage.setItem('cozy_pixel_current_user', JSON.stringify(user));
+    if (token) {
+      setStoredToken(token);
+    }
     setLogoutNotice(null);
 
-    // If new user, demo fresh user (usr-demo-0), or standard student starting fresh:
-    if (isNewUser || user.id === 'usr-demo-0' || user.username === 'taylor' || user.username === 'student') {
-      // Initialize welcoming Level 0 starter cartridge
-      setTasks(NEW_USER_INITIAL_TASKS);
-      setActiveFocusTask(NEW_USER_INITIAL_TASKS[0]);
+    // Fetch existing persisted tasks from SQLite database
+    const dbTasks = await dataApi.fetchTasks();
+    const dbRoutines = await dataApi.fetchRoutines();
+    const dbState = await dataApi.fetchCompanionState();
+
+    if (dbTasks && dbTasks.length > 0) {
+      setTasks(dbTasks);
+      setActiveFocusTask(dbTasks[0]);
+    } else if (isNewUser || user.id === 'usr-demo-0' || user.username === 'taylor' || user.username === 'student') {
+      // Initialize Level 0 starter cartridge and persist to DB
+      const starterTasks = NEW_USER_INITIAL_TASKS;
+      setTasks(starterTasks);
+      setActiveFocusTask(starterTasks[0]);
+      dataApi.syncTasks(starterTasks);
+    }
+
+    if (dbRoutines && dbRoutines.length > 0) {
+      setRoutines(dbRoutines);
+    } else if (isNewUser || user.id === 'usr-demo-0') {
       setRoutines(NEW_USER_ROUTINES);
-      setActivityLog(NEW_USER_WEEK_ACTIVITY);
-      setPet({
+      dataApi.syncRoutines(NEW_USER_ROUTINES);
+    }
+
+    if (dbState) {
+      if (dbState.availableMinutes !== undefined) setAvailableMinutes(dbState.availableMinutes);
+      if (dbState.pet) setPet(dbState.pet);
+      if (dbState.activityLog) setActivityLog(dbState.activityLog);
+      if (dbState.scratchpad !== undefined) setScratchpad(dbState.scratchpad);
+    } else if (isNewUser || user.id === 'usr-demo-0') {
+      const freshPet: PetState = {
         id: 'sprout',
         name: 'Sprout',
         level: 0,
@@ -638,12 +853,21 @@ export default function App() {
         berriesAvailable: 1,
         berriesFed: 0,
         totalWorkExpEarned: 0,
-      });
+      };
+      setPet(freshPet);
+      setActivityLog(NEW_USER_WEEK_ACTIVITY);
       setScratchpad(
         `• Welcome to focus.os, ${user.name}!\n• Academic focus: ${user.studyMajor || 'Your studies'}\n• Daily Target: ${user.dailyGoalMinutes || 30} minutes\n• Level 0 Cartridge initialized. Take your first gentle 5-minute study sprint to awaken Sprout!`
       );
-      setCurrentTab('whatnow');
+      dataApi.saveCompanionState({
+        availableMinutes: 30,
+        pet: freshPet,
+        activityLog: NEW_USER_WEEK_ACTIVITY,
+        scratchpad: `• Welcome to focus.os, ${user.name}!\n• Level 0 Cartridge initialized.`,
+      });
     }
+
+    setCurrentTab('whatnow');
   };
 
   // If user is not authenticated, show ONLY the standalone Login/Signup page
@@ -662,7 +886,7 @@ export default function App() {
 
   const activeTasksCount = tasks.filter((t) => !t.completed).length;
   const dailyTargetMinutes = currentUser?.dailyGoalMinutes || 30;
-  const streakInfo = calculateDailyStreak(activityLog, dailyTargetMinutes);
+  const streakInfo = calculateDailyStreak(activityLog, currentUser.id, dailyTargetMinutes);
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-[#2D3142] flex flex-col font-sans selection:bg-[#B4C5E4]">
@@ -788,6 +1012,7 @@ export default function App() {
                 isRetroLofiActive={isRetroLofiActive}
                 onToggleRetroLofi={handleToggleRetroLofi}
                 onOpenMusicTab={() => setCurrentTab('music')}
+                onInterruptTask={handleInterruptTask}
               />
             )}
 
@@ -797,6 +1022,12 @@ export default function App() {
                 tasks={tasks}
                 onStartFocusOnTask={handleStartFocusOnTask}
                 onBreakdownTask={handleBreakdownTask}
+                onPostponeTask={handlePostponeTask}
+                onInterruptTask={handleInterruptTask}
+                onCompleteTask={handleToggleTask}
+                availableMinutes={availableMinutes}
+                onUpdateAvailableMinutes={handleUpdateAvailableMinutes}
+                lastScheduleEvent={lastScheduleEvent}
                 soundEnabled={soundEnabled}
               />
             )}
@@ -811,6 +1042,8 @@ export default function App() {
                 onDeleteTask={handleDeleteTask}
                 onBreakdownTask={handleBreakdownTask}
                 onStartFocusOnTask={handleStartFocusOnTask}
+                onPostponeTask={handlePostponeTask}
+                onInterruptTask={handleInterruptTask}
                 soundEnabled={soundEnabled}
                 isBreakingDownId={isBreakingDownId}
               />

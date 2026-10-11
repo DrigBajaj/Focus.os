@@ -38,18 +38,74 @@ export interface Subtask {
   completed: boolean;
 }
 
+export type TaskStatus = 'pending' | 'in_progress' | 'interrupted' | 'postponed' | 'completed';
+
 export interface TaskItem {
   id: string;
   title: string;
   priority: 'urgent' | 'high' | 'normal' | 'low';
   deadline: string;
   estimatedMinutes: number;
+  remainingMinutes?: number; // Dynamic remaining duration when interrupted or updated
   staminaPoints: 1 | 2 | 3;
   completed: boolean;
   category: 'academic' | 'project' | 'life' | 'wellness';
   subtasks: Subtask[];
   notes?: string;
   createdAt: number;
+  status?: TaskStatus;
+  postponeCount?: number;
+  lastPostponedAt?: number;
+  interruptedAt?: number;
+  actualMinutesSpent?: number;
+  lastInterruptionElapsed?: number;
+}
+
+export type ScheduleChangeEventType =
+  | 'initial'
+  | 'time_changed'
+  | 'energy_changed'
+  | 'task_postponed'
+  | 'task_interrupted'
+  | 'task_overrun'
+  | 'task_completed'
+  | 'task_added'
+  | 'task_uncompleted'
+  | 'task_deleted'
+  | 'manual_override';
+
+export interface ScheduleChangeEvent {
+  type: ScheduleChangeEventType;
+  timestamp: number;
+  description: string;
+  taskId?: string;
+  taskTitle?: string;
+  previousMinutes?: number;
+  newMinutes?: number;
+}
+
+export interface ScoredTask {
+  task: TaskItem;
+  score: number;
+  effectiveRemainingMinutes: number;
+  isOverdue: boolean;
+  isApproaching: boolean;
+  isUrgentOrOverdue: boolean;
+  fitsTimeBudget: boolean;
+  fitRatio: number;
+  reasons: string[];
+  primaryExplanation: string;
+  rankChangeNote?: string;
+}
+
+export interface ScheduleCalculationResult {
+  recommendedTask: ScoredTask | null;
+  rankedTasks: ScoredTask[];
+  allPendingCount: number;
+  availableMinutes: number;
+  recalculationReason: string;
+  eventDescription: string;
+  timestamp: number;
 }
 
 export interface RoutineItem {

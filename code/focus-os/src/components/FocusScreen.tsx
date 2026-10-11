@@ -66,6 +66,7 @@ interface FocusScreenProps {
   isRetroLofiActive: boolean;
   onToggleRetroLofi: (active: boolean) => void;
   onOpenMusicTab: () => void;
+  onInterruptTask?: (taskId: string, elapsedMinutes?: number, remainingMinutes?: number) => void;
 }
 
 const CLASSIC_MODES: Record<Exclude<FocusMode, 'quest'>, { label: string; minutes: number; desc: string; icon: React.ReactNode }> = {
@@ -115,6 +116,7 @@ export const FocusScreen: React.FC<FocusScreenProps> = ({
   isRetroLofiActive,
   onToggleRetroLofi,
   onOpenMusicTab,
+  onInterruptTask,
 }) => {
   // Mode: 'quest' is primary default!
   const [activeMode, setActiveMode] = useState<FocusMode>('quest');
@@ -300,6 +302,28 @@ export const FocusScreen: React.FC<FocusScreenProps> = ({
     setShowAbortConfirm(false);
     setIsTimerRunning(false);
     setIsQuestActive(false);
+    setCurrentPhaseIndex(0);
+    const firstPhase = questConfig.phases[0];
+    setPhaseSecondsLeft(firstPhase ? firstPhase.minutes * 60 : 25 * 60);
+    setTotalQuestSecondsElapsed(0);
+  };
+
+  // Interrupt Quest & preserve remaining work for adaptive rescheduling
+  const handleInterruptQuest = () => {
+    playMechanicalClick(soundEnabled);
+    setShowAbortConfirm(false);
+    setIsTimerRunning(false);
+    setIsQuestActive(false);
+
+    const elapsedMins = Math.max(1, Math.round(totalQuestSecondsElapsed / 60));
+    const estimatedMins = activeTask?.estimatedMinutes || questConfig.estimatedMinutes || 25;
+    const currentRemaining = activeTask?.remainingMinutes ?? estimatedMins;
+    const newRemainingMins = Math.max(1, currentRemaining - elapsedMins);
+
+    if (activeTask && onInterruptTask) {
+      onInterruptTask(activeTask.id, elapsedMins, newRemainingMins);
+    }
+
     setCurrentPhaseIndex(0);
     const firstPhase = questConfig.phases[0];
     setPhaseSecondsLeft(firstPhase ? firstPhase.minutes * 60 : 25 * 60);
@@ -732,24 +756,35 @@ export const FocusScreen: React.FC<FocusScreenProps> = ({
 
           {/* Accidental Click Guard Safeguard Banner */}
           {showAbortConfirm && (
-            <div className="p-3 bg-[#FFF1F0] border-2 border-[#BA1A1A] rounded-xs flex flex-col sm:flex-row items-center justify-between gap-2.5 pixel-shadow-sm">
+            <div className="p-3 bg-[#FFF1F0] border-2 border-[#BA1A1A] rounded-xs flex flex-col md:flex-row items-center justify-between gap-2.5 pixel-shadow-sm">
               <div className="flex items-center gap-2 text-[#BA1A1A] font-mono text-xs font-bold">
-                <span>⚠️ End session early? Current sprint phase will be paused.</span>
+                <span>⚠️ Pausing or ending session early?</span>
               </div>
-              <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                 <button
                   type="button"
                   onClick={() => setShowAbortConfirm(false)}
-                  className="pixel-btn min-h-[38px] flex-1 sm:flex-initial px-3.5 py-1.5 bg-[#FAF8F5] border-2 border-[#2D3142] font-mono text-xs font-bold text-[#2D3142] rounded-xs"
+                  className="pixel-btn min-h-[38px] flex-1 md:flex-initial px-3 py-1.5 bg-[#FAF8F5] border-2 border-[#2D3142] font-mono text-xs font-bold text-[#2D3142] rounded-xs"
                 >
                   Keep Focusing
                 </button>
+                {activeTask && (
+                  <button
+                    type="button"
+                    id="interrupt-and-save-btn"
+                    onClick={handleInterruptQuest}
+                    className="pixel-btn min-h-[38px] flex-1 md:flex-initial px-3 py-1.5 bg-[#F8C390] hover:bg-[#F4A261] border-2 border-[#2D3142] font-mono text-xs font-bold text-[#2D3142] rounded-xs"
+                    title="Save elapsed progress and recalculate adaptive schedule"
+                  >
+                    ⏸ Interrupt & Save
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={handleAbortQuestConfirmed}
-                  className="pixel-btn min-h-[38px] flex-1 sm:flex-initial px-3.5 py-1.5 bg-[#BA1A1A] text-white border-2 border-[#2D3142] font-mono text-xs font-bold rounded-xs"
+                  className="pixel-btn min-h-[38px] flex-1 md:flex-initial px-3 py-1.5 bg-[#BA1A1A] text-white border-2 border-[#2D3142] font-mono text-xs font-bold rounded-xs"
                 >
-                  Yes, End Session
+                  Discard Sprint
                 </button>
               </div>
             </div>
