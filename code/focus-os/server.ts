@@ -2,6 +2,13 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
+import {
+  getDatabase,
+  SafeUser,
+  validateRegistrationInput,
+  validateLoginInput,
+  verifyPassword,
+} from './server/db';
 
 async function startServer() {
   const app = express();
@@ -21,151 +28,253 @@ async function startServer() {
     res.json({ status: 'ok', hasGeminiKey: !!process.env.GEMINI_API_KEY });
   });
 
-  // User storage for prototype
-  interface StoredUser {
-    id: string;
-    username: string;
-    name: string;
-    email: string;
-    passwordHash: string;
-    studyMajor?: string;
-    dailyGoalMinutes?: number;
-    createdAt: number;
+  // Database Service Initialization
+  const db = getDatabase();
+
+  // Types for authenticated requests
+  interface AuthenticatedRequest extends express.Request {
+    user?: SafeUser;
+    sessionToken?: string;
   }
 
-  const USERS: StoredUser[] = [
-    {
-      id: 'usr-demo-0',
-      username: 'student',
-      name: 'Taylor Reed (Newbie)',
-      email: 'student@study.local',
-      passwordHash: 'password123',
-      studyMajor: 'Cognitive Science & Psychology',
-      dailyGoalMinutes: 30,
-      createdAt: Date.now(),
-    },
-    {
-      id: 'usr-demo-1',
-      username: 'alex',
-      name: 'Alex Chen',
-      email: 'alex@example.com',
-      passwordHash: 'password123',
-      studyMajor: 'Computer Science (B.Tech)',
-      dailyGoalMinutes: 60,
-      createdAt: Date.now() - 86400000 * 7,
-    },
-    {
-      id: 'usr-demo-2',
-      username: 'sam',
-      name: 'Sam Rivera',
-      email: 'sam@example.com',
-      passwordHash: 'password123',
-      studyMajor: 'Design & Engineering',
-      dailyGoalMinutes: 45,
-      createdAt: Date.now() - 86400000 * 3,
-    },
-  ];
+  // Authentication Middleware: Validates cryptographically random session tokens
+  function requireAuth(req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) {
+    const authHeader = req.headers.authorization;
+    let token = '';
 
-  // Auth API: Register new user
-  app.post('/api/auth/register', (req, res) => {
-    const { username, name, email, password, studyMajor, dailyGoalMinutes } = req.body;
-    if (!username || !password || !name) {
-      res.status(400).json({ error: 'Username, name, and password are required' });
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7).trim();
+    } else if (req.headers['x-auth-token']) {
+      token = String(req.headers['x-auth-token']).trim();
+    }
+
+    if (!token) {
+      res.status(401).json({ error: 'Authentication required. Please log in.' });
       return;
     }
 
+    const user = db.validateSession(token);
+    if (!user) {
+      res.status(401).json({ error: 'Invalid or expired session. Please log in again.' });
+      return;
+    }
+
+    req.user = user;
+    req.sessionToken = token;
+    next();
+  }
+
+  // Auth API: Register new user with strict input validation and crypto.scrypt password hashing
+  app.post('/api/auth/register', async (req, res) => {
+    const validation = validateRegistrationInput(req.body);
+    if (!validation.valid) {
+      res.status(400).json({
+        error: 'Validation failed. Please check the entered fields.',
+        details: validation.errors,
+      });
+      return;
+    }
+
+    const { username, name, email, password, studyMajor, dailyGoalMinutes } = req.body;
     const cleanUsername = String(username).trim().toLowerCase();
-    const cleanEmail = email ? String(email).trim().toLowerCase() : `${cleanUsername}@study.local`;
+    const cleanEmail = String(email).trim().toLowerCase();
 
     // Check if user already exists
-    const existing = USERS.find(
-      (u) => u.username === cleanUsername || (email && u.email === cleanEmail)
-    );
+    const existing = db.findUserByUsernameOrEmail(cleanUsername) || db.findUserByUsernameOrEmail(cleanEmail);
     if (existing) {
-      res.status(409).json({ error: 'An account with that username or email already exists.' });
+      res.status(409).json({
+        error: 'An account with that username or email already exists.',
+        details: {
+          username: existing.username === cleanUsername ? 'Username is already registered.' : undefined,
+          email: existing.email === cleanEmail ? 'Email is already registered.' : undefined,
+        },
+      });
       return;
     }
 
-    const newUser: StoredUser = {
-      id: `usr-${Date.now()}`,
-      username: cleanUsername,
-      name: String(name).trim(),
-      email: cleanEmail,
-      passwordHash: String(password),
-      studyMajor: studyMajor ? String(studyMajor).trim() : 'General Studies',
-      dailyGoalMinutes: Number(dailyGoalMinutes) || 45,
-      createdAt: Date.now(),
-    };
+    try {
+      // Securely hash password using crypto.scrypt
+      const newUser = await db.createUser({
+        username: cleanUsername,
+        name: String(name).trim(),
+        email: cleanEmail,
+        password: String(password),
+        studyMajor: studyMajor ? String(studyMajor).trim() : undefined,
+        dailyGoalMinutes: Number(dailyGoalMinutes) || 45,
+      });
 
-    USERS.push(newUser);
+      // Generate cryptographically random session token and store in database
+      const userAgent = req.headers['user-agent'] || undefined;
+      const { token } = db.createSession(newUser.id, userAgent);
 
-    const safeUser = {
-      id: newUser.id,
-      username: newUser.username,
-      name: newUser.name,
-      email: newUser.email,
-      studyMajor: newUser.studyMajor,
-      dailyGoalMinutes: newUser.dailyGoalMinutes,
-      createdAt: newUser.createdAt,
-    };
-
-    res.status(201).json({
-      user: safeUser,
-      token: `tok-${newUser.id}-${Date.now()}`,
-      message: 'Account created successfully!',
-    });
+      res.status(201).json({
+        user: newUser,
+        token,
+        message: 'Account created and secured successfully with crypto.scrypt!',
+      });
+    } catch (err: any) {
+      console.error('Registration database error:', err);
+      res.status(500).json({ error: 'Internal server error while creating account.' });
+    }
   });
 
-  // Auth API: Login
-  app.post('/api/auth/login', (req, res) => {
-    const { identifier, password } = req.body;
-    if (!identifier || !password) {
-      res.status(400).json({ error: 'Username/email and password are required' });
+  // Auth API: Login with timing-safe crypto.scrypt password verification
+  app.post('/api/auth/login', async (req, res) => {
+    const validation = validateLoginInput(req.body);
+    if (!validation.valid) {
+      res.status(400).json({
+        error: 'Validation failed. Please provide your username/email and password.',
+        details: validation.errors,
+      });
       return;
     }
 
-    const cleanId = String(identifier).trim().toLowerCase();
-    const user = USERS.find(
-      (u) => (u.username === cleanId || u.email === cleanId) && u.passwordHash === String(password)
-    );
+    const { identifier, password } = req.body;
+    const userRecord = db.findUserByUsernameOrEmail(String(identifier).trim());
 
-    if (!user) {
+    if (!userRecord) {
       res.status(401).json({ error: 'Invalid username/email or password.' });
       return;
     }
 
-    const safeUser = {
-      id: user.id,
-      username: user.username,
-      name: user.name,
-      email: user.email,
-      studyMajor: user.studyMajor,
-      dailyGoalMinutes: user.dailyGoalMinutes,
-      createdAt: user.createdAt,
-    };
+    // Timing-safe crypto.scrypt password verification
+    const isValidPassword = await verifyPassword(
+      String(password),
+      userRecord.password_salt,
+      userRecord.password_hash
+    );
+
+    if (!isValidPassword) {
+      res.status(401).json({ error: 'Invalid username/email or password.' });
+      return;
+    }
+
+    // Create cryptographically random session in database
+    const userAgent = req.headers['user-agent'] || undefined;
+    const { token } = db.createSession(userRecord.id, userAgent);
+    const safeUser = db.toSafeUser(userRecord);
 
     res.json({
       user: safeUser,
-      token: `tok-${user.id}-${Date.now()}`,
+      token,
       message: 'Logged in successfully!',
     });
   });
 
-  // Auth API: Logout
-  app.post('/api/auth/logout', (req, res) => {
-    res.json({ success: true, message: 'Logged out successfully.' });
+  // Auth API: Verify currently active session
+  app.get('/api/auth/me', requireAuth, (req: AuthenticatedRequest, res) => {
+    res.json({
+      user: req.user,
+      token: req.sessionToken,
+    });
+  });
+
+  // Auth API: Logout (invalidates and removes session record from database)
+  app.post('/api/auth/logout', (req: AuthenticatedRequest, res) => {
+    const authHeader = req.headers.authorization;
+    let token = '';
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7).trim();
+    } else if (req.headers['x-auth-token']) {
+      token = String(req.headers['x-auth-token']).trim();
+    }
+
+    if (token) {
+      db.deleteSession(token);
+    }
+
+    res.json({ success: true, message: 'Logged out successfully. Session revoked.' });
   });
 
   // Auth API: Demo users list for quick prototype testing
   app.get('/api/auth/demo-users', (req, res) => {
-    const demo = USERS.map((u) => ({
+    const demo = db.getDemoUsers().map((u) => ({
       username: u.username,
       name: u.name,
       email: u.email,
       studyMajor: u.studyMajor,
-      demoPassword: u.passwordHash,
+      demoPassword: 'password123',
     }));
     res.json({ demoUsers: demo });
+  });
+
+  // Protected API: Get User Tasks
+  app.get('/api/tasks', requireAuth, (req: AuthenticatedRequest, res) => {
+    try {
+      const tasks = db.getUserTasks(req.user!.id);
+      res.json({ tasks });
+    } catch (err) {
+      console.error('Error fetching tasks:', err);
+      res.status(500).json({ error: 'Failed to retrieve tasks.' });
+    }
+  });
+
+  // Protected API: Sync/Save All User Tasks
+  app.post('/api/tasks/sync', requireAuth, (req: AuthenticatedRequest, res) => {
+    const { tasks } = req.body;
+    if (!Array.isArray(tasks)) {
+      res.status(400).json({ error: 'tasks array is required' });
+      return;
+    }
+
+    try {
+      db.saveAllUserTasks(req.user!.id, tasks);
+      res.json({ success: true, count: tasks.length });
+    } catch (err) {
+      console.error('Error saving tasks:', err);
+      res.status(500).json({ error: 'Failed to save tasks.' });
+    }
+  });
+
+  // Protected API: Get User Routines
+  app.get('/api/routines', requireAuth, (req: AuthenticatedRequest, res) => {
+    try {
+      const routines = db.getUserRoutines(req.user!.id);
+      res.json({ routines });
+    } catch (err) {
+      console.error('Error fetching routines:', err);
+      res.status(500).json({ error: 'Failed to retrieve routines.' });
+    }
+  });
+
+  // Protected API: Sync/Save All User Routines
+  app.post('/api/routines/sync', requireAuth, (req: AuthenticatedRequest, res) => {
+    const { routines } = req.body;
+    if (!Array.isArray(routines)) {
+      res.status(400).json({ error: 'routines array is required' });
+      return;
+    }
+
+    try {
+      db.saveAllUserRoutines(req.user!.id, routines);
+      res.json({ success: true, count: routines.length });
+    } catch (err) {
+      console.error('Error saving routines:', err);
+      res.status(500).json({ error: 'Failed to save routines.' });
+    }
+  });
+
+  // Protected API: Get Companion Data
+  app.get('/api/user/state', requireAuth, (req: AuthenticatedRequest, res) => {
+    try {
+      const state = db.getUserCompanionData(req.user!.id);
+      res.json({ state });
+    } catch (err) {
+      console.error('Error fetching companion state:', err);
+      res.status(500).json({ error: 'Failed to retrieve state.' });
+    }
+  });
+
+  // Protected API: Save Companion Data
+  app.post('/api/user/state', requireAuth, (req: AuthenticatedRequest, res) => {
+    try {
+      db.saveUserCompanionData(req.user!.id, req.body);
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Error saving companion state:', err);
+      res.status(500).json({ error: 'Failed to save state.' });
+    }
   });
 
 

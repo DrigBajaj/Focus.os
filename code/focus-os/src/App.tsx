@@ -32,6 +32,7 @@ import { getCurrentPetStage } from './data/petEvolutions';
 import { calculateDailyStreak, recordStreakTargetMet } from './utils/streak';
 import { ScheduleChangeEvent } from './types';
 import { createScheduleEvent } from './utils/adaptiveScheduler';
+import { authApi, dataApi, getStoredToken, setStoredToken, getStoredUser } from './services/apiClient';
 
 export default function App() {
   // Active Screen Tab
@@ -54,11 +55,44 @@ export default function App() {
 
   // Authenticated User & Portal state - Defaults to null to present standalone Login/Signup screen
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
-    const saved = localStorage.getItem('cozy_pixel_current_user');
-    return saved ? JSON.parse(saved) : null;
+    return getStoredUser();
   });
 
   const [logoutNotice, setLogoutNotice] = useState<string | null>(null);
+
+  // Validate session token on server upon app initialization
+  useEffect(() => {
+    const token = getStoredToken();
+    if (token) {
+      authApi.verifySession().then(({ ok, user }) => {
+        if (ok && user) {
+          setCurrentUser(user);
+          // Sync persisted tasks from database
+          dataApi.fetchTasks().then((dbTasks) => {
+            if (dbTasks && dbTasks.length > 0) {
+              setTasks(dbTasks);
+            }
+          });
+          dataApi.fetchRoutines().then((dbRoutines) => {
+            if (dbRoutines && dbRoutines.length > 0) {
+              setRoutines(dbRoutines);
+            }
+          });
+          dataApi.fetchCompanionState().then((state) => {
+            if (state) {
+              if (state.availableMinutes !== undefined) setAvailableMinutes(state.availableMinutes);
+              if (state.pet) setPet(state.pet);
+              if (state.activityLog) setActivityLog(state.activityLog);
+              if (state.scratchpad !== undefined) setScratchpad(state.scratchpad);
+            }
+          });
+        } else if (!ok && getStoredUser()) {
+          setCurrentUser(null);
+          setLogoutNotice('Your session has expired. Please sign in again.');
+        }
+      });
+    }
+  }, []);
 
   // Audio settings
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
@@ -190,6 +224,32 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('cozy_pixel_available_mins', JSON.stringify(availableMinutes));
   }, [availableMinutes]);
+
+  // Synchronize tasks to persistent database whenever changed while logged in
+  useEffect(() => {
+    if (currentUser && getStoredToken()) {
+      dataApi.syncTasks(tasks);
+    }
+  }, [tasks, currentUser]);
+
+  // Synchronize routines to persistent database
+  useEffect(() => {
+    if (currentUser && getStoredToken()) {
+      dataApi.syncRoutines(routines);
+    }
+  }, [routines, currentUser]);
+
+  // Synchronize companion data to persistent database
+  useEffect(() => {
+    if (currentUser && getStoredToken()) {
+      dataApi.saveCompanionState({
+        availableMinutes,
+        pet,
+        activityLog,
+        scratchpad,
+      });
+    }
+  }, [availableMinutes, pet, activityLog, scratchpad, currentUser]);
 
   // Ambient rain noise handler
   const handleToggleAmbient = () => {
@@ -733,29 +793,55 @@ export default function App() {
   // User Authentication Handlers
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await authApi.logout();
     } catch {
       // Offline fallback
     }
-    localStorage.removeItem('cozy_pixel_current_user');
+    setStoredUser(null);
+    setStoredToken(null);
     setCurrentUser(null);
-    setLogoutNotice('Cartridge ejected safely! Your progress has been safely stored in memory.');
+    setLogoutNotice('Cartridge ejected safely! Your session has been revoked and progress stored in database.');
     playMechanicalClick(soundEnabled);
   };
 
-  const handleLoginSuccess = (user: AuthUser, isNewUser: boolean) => {
+  const handleLoginSuccess = async (user: AuthUser, isNewUser: boolean, token?: string) => {
     setCurrentUser(user);
-    localStorage.setItem('cozy_pixel_current_user', JSON.stringify(user));
+    setStoredUser(user);
+    if (token) {
+      setStoredToken(token);
+    }
     setLogoutNotice(null);
 
-    // If new user, demo fresh user (usr-demo-0), or standard student starting fresh:
-    if (isNewUser || user.id === 'usr-demo-0' || user.username === 'taylor' || user.username === 'student') {
-      // Initialize welcoming Level 0 starter cartridge
-      setTasks(NEW_USER_INITIAL_TASKS);
-      setActiveFocusTask(NEW_USER_INITIAL_TASKS[0]);
+    // Fetch existing persisted tasks from SQLite database
+    const dbTasks = await dataApi.fetchTasks();
+    const dbRoutines = await dataApi.fetchRoutines();
+    const dbState = await dataApi.fetchCompanionState();
+
+    if (dbTasks && dbTasks.length > 0) {
+      setTasks(dbTasks);
+      setActiveFocusTask(dbTasks[0]);
+    } else if (isNewUser || user.id === 'usr-demo-0' || user.username === 'taylor' || user.username === 'student') {
+      // Initialize Level 0 starter cartridge and persist to DB
+      const starterTasks = NEW_USER_INITIAL_TASKS;
+      setTasks(starterTasks);
+      setActiveFocusTask(starterTasks[0]);
+      dataApi.syncTasks(starterTasks);
+    }
+
+    if (dbRoutines && dbRoutines.length > 0) {
+      setRoutines(dbRoutines);
+    } else if (isNewUser || user.id === 'usr-demo-0') {
       setRoutines(NEW_USER_ROUTINES);
-      setActivityLog(NEW_USER_WEEK_ACTIVITY);
-      setPet({
+      dataApi.syncRoutines(NEW_USER_ROUTINES);
+    }
+
+    if (dbState) {
+      if (dbState.availableMinutes !== undefined) setAvailableMinutes(dbState.availableMinutes);
+      if (dbState.pet) setPet(dbState.pet);
+      if (dbState.activityLog) setActivityLog(dbState.activityLog);
+      if (dbState.scratchpad !== undefined) setScratchpad(dbState.scratchpad);
+    } else if (isNewUser || user.id === 'usr-demo-0') {
+      const freshPet: PetState = {
         id: 'sprout',
         name: 'Sprout',
         level: 0,
@@ -765,12 +851,21 @@ export default function App() {
         berriesAvailable: 1,
         berriesFed: 0,
         totalWorkExpEarned: 0,
-      });
+      };
+      setPet(freshPet);
+      setActivityLog(NEW_USER_WEEK_ACTIVITY);
       setScratchpad(
         `• Welcome to focus.os, ${user.name}!\n• Academic focus: ${user.studyMajor || 'Your studies'}\n• Daily Target: ${user.dailyGoalMinutes || 30} minutes\n• Level 0 Cartridge initialized. Take your first gentle 5-minute study sprint to awaken Sprout!`
       );
-      setCurrentTab('whatnow');
+      dataApi.saveCompanionState({
+        availableMinutes: 30,
+        pet: freshPet,
+        activityLog: NEW_USER_WEEK_ACTIVITY,
+        scratchpad: `• Welcome to focus.os, ${user.name}!\n• Level 0 Cartridge initialized.`,
+      });
     }
+
+    setCurrentTab('whatnow');
   };
 
   // If user is not authenticated, show ONLY the standalone Login/Signup page
