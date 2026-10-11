@@ -8,3 +8,4 @@ Name: Drig Bajaj
 +  [W3: Authentication Refinement and Session Handling](./w3-session-handling.md)
 +  [W4: Settings System and Configuration](./w4-settings-system.md)
 +  [W5: Cartridge Memory and User Customization](./w5-cartridge-memory.md)
++  [W5: Database Persistence and User Data Isolation](./w6-databse-persistence.md)
