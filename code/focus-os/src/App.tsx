@@ -316,8 +316,10 @@ export default function App() {
         // If today just met or exceeded the daily focus target:
         if (prevMins < dailyTarget && newMins >= dailyTarget) {
           playVictoryFanfare(soundEnabled);
-          const computed = calculateDailyStreak(copy, dailyTarget);
-          recordStreakTargetMet(computed.currentStreak);
+          const computed = calculateDailyStreak(copy, currentUser?.id ?? 'guest', dailyTarget);
+          if (currentUser?.id) {
+            recordStreakTargetMet(computed.currentStreak, currentUser.id);
+          }
           setStreakToast({
             streak: computed.currentStreak,
             minutes: newMins,
@@ -379,10 +381,12 @@ export default function App() {
           level: newMins >= 60 ? 3 : newMins >= 30 ? 2 : 1,
         };
 
-        const computed = calculateDailyStreak(copy, dailyTarget);
-        recordStreakTargetMet(computed.currentStreak);
+        const computed = calculateDailyStreak(copy, currentUser?.id ?? 'guest', dailyTarget);
 
         if (prevMins < dailyTarget && newMins >= dailyTarget) {
+          if (currentUser?.id) {
+            recordStreakTargetMet(computed.currentStreak, currentUser.id);
+          }
           playVictoryFanfare(soundEnabled);
           setStreakToast({
             streak: computed.currentStreak,
@@ -797,16 +801,14 @@ export default function App() {
     } catch {
       // Offline fallback
     }
-    setStoredUser(null);
-    setStoredToken(null);
     setCurrentUser(null);
+    setStoredToken(null);
     setLogoutNotice('Cartridge ejected safely! Your session has been revoked and progress stored in database.');
     playMechanicalClick(soundEnabled);
   };
 
   const handleLoginSuccess = async (user: AuthUser, isNewUser: boolean, token?: string) => {
     setCurrentUser(user);
-    setStoredUser(user);
     if (token) {
       setStoredToken(token);
     }
@@ -884,7 +886,7 @@ export default function App() {
 
   const activeTasksCount = tasks.filter((t) => !t.completed).length;
   const dailyTargetMinutes = currentUser?.dailyGoalMinutes || 30;
-  const streakInfo = calculateDailyStreak(activityLog, dailyTargetMinutes);
+  const streakInfo = calculateDailyStreak(activityLog, currentUser.id, dailyTargetMinutes);
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-[#2D3142] flex flex-col font-sans selection:bg-[#B4C5E4]">
