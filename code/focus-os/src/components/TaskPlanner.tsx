@@ -70,7 +70,7 @@ export const TaskPlanner: React.FC<TaskPlannerProps> = ({
       <div className="bg-[#FAF8F5] border-2 border-[#2D3142] p-3 sm:p-5 pixel-shadow">
         <div className="flex items-center justify-between border-b-2 border-[#2D3142] pb-2 mb-2.5">
           <span className="font-mono text-xs sm:text-sm font-bold uppercase text-[#2D3142]">
-            CAPTURE TASK
+            ➕ NEW TASK
           </span>
           <button
             type="button"
@@ -81,11 +81,8 @@ export const TaskPlanner: React.FC<TaskPlannerProps> = ({
             }}
             className="sm:hidden font-mono text-[10px] font-bold text-[#2D3142] px-1.5 py-0.5 bg-[#CADBFB] border border-[#2D3142] rounded-xs"
           >
-            {showDetailsOnMobile ? 'LESS OPTIONS ▲' : 'OPTIONS ▾'}
+            {showDetailsOnMobile ? 'LESS ▲' : 'OPTIONS ▾'}
           </button>
-          <span className="hidden sm:inline font-mono text-[10px] text-[#2D3142]/70">
-            MINIMAL INPUT FRICTION
-          </span>
         </div>
 
         <form onSubmit={handleCreateTask} className="space-y-2.5">
@@ -95,16 +92,16 @@ export const TaskPlanner: React.FC<TaskPlannerProps> = ({
               type="text"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="e.g. Complete Software Engineering project or Read DBMS chapter"
-              className="flex-1 px-3 py-2 bg-[#FAF8F5] border-2 border-[#2D3142] font-sans text-xs sm:text-sm text-[#2D3142] pixel-inset focus:outline-none"
+              placeholder="e.g. Finish DBMS assignment or research notes"
+              className="flex-1 min-h-[42px] px-3 py-2 bg-[#FAF8F5] border-2 border-[#2D3142] font-sans text-xs sm:text-sm text-[#2D3142] pixel-inset focus:outline-none"
             />
             <button
               type="submit"
               id="planner-add-task-btn"
-              className="pixel-btn flex items-center justify-center gap-1.5 px-4 py-2 bg-[#7FB685] hover:bg-[#A3CFAB] border-2 border-[#2D3142] font-mono text-xs font-bold text-[#2D3142] pixel-shadow-sm whitespace-nowrap"
+              className="pixel-btn min-h-[42px] flex items-center justify-center gap-1.5 px-4 py-2 bg-[#7FB685] hover:bg-[#A3CFAB] border-2 border-[#2D3142] font-mono text-xs font-bold text-[#2D3142] pixel-shadow-sm whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
-              <span>LOG TASK</span>
+              <span>Add Task</span>
             </button>
           </div>
 
@@ -113,25 +110,25 @@ export const TaskPlanner: React.FC<TaskPlannerProps> = ({
             {/* Priority */}
             <div>
               <label className="block font-mono text-[10px] font-bold text-[#2D3142] mb-1">
-                PRIORITY:
+                Priority:
               </label>
               <select
                 id="task-priority-select"
                 value={newPriority}
                 onChange={(e) => setNewPriority(e.target.value as any)}
-                className="w-full px-2 py-1 bg-[#FAF8F5] border-2 border-[#2D3142] font-mono text-xs font-bold text-[#2D3142] pixel-inset-soft"
+                className="w-full min-h-[38px] px-2 py-1 bg-[#FAF8F5] border-2 border-[#2D3142] font-mono text-xs font-bold text-[#2D3142] pixel-inset-soft"
               >
-                <option value="urgent">URGENT</option>
-                <option value="high">HIGH</option>
-                <option value="normal">NORMAL</option>
-                <option value="low">LOW</option>
+                <option value="urgent">Urgent</option>
+                <option value="high">High</option>
+                <option value="normal">Normal</option>
+                <option value="low">Low</option>
               </select>
             </div>
 
             {/* Deadline */}
             <div>
               <label className="block font-mono text-[10px] font-bold text-[#2D3142] mb-1">
-                DEADLINE:
+                Deadline:
               </label>
               <input
                 id="task-deadline-input"
@@ -139,15 +136,14 @@ export const TaskPlanner: React.FC<TaskPlannerProps> = ({
                 value={newDeadline}
                 onChange={(e) => setNewDeadline(e.target.value)}
                 placeholder="e.g. Tomorrow 5 PM"
-                className="w-full px-2 py-1 bg-[#FAF8F5] border-2 border-[#2D3142] font-sans text-xs text-[#2D3142] pixel-inset-soft"
-              >
-              </input>
+                className="w-full min-h-[38px] px-2 py-1 bg-[#FAF8F5] border-2 border-[#2D3142] font-sans text-xs text-[#2D3142] pixel-inset-soft"
+              />
             </div>
 
             {/* Estimated Duration */}
             <div>
               <label className="block font-mono text-[10px] font-bold text-[#2D3142] mb-1">
-                EST. MINUTES:
+                Duration:
               </label>
               <select
                 id="task-duration-select"
@@ -157,7 +153,7 @@ export const TaskPlanner: React.FC<TaskPlannerProps> = ({
                   setNewMinutes(m);
                   setNewSP(m <= 15 ? 1 : m <= 40 ? 2 : 3);
                 }}
-                className="w-full px-2 py-1 bg-[#FAF8F5] border-2 border-[#2D3142] font-mono text-xs font-bold text-[#2D3142] pixel-inset-soft"
+                className="w-full min-h-[38px] px-2 py-1 bg-[#FAF8F5] border-2 border-[#2D3142] font-mono text-xs font-bold text-[#2D3142] pixel-inset-soft"
               >
                 <option value={10}>10 mins (1 SP)</option>
                 <option value={20}>20 mins (1 SP)</option>
@@ -171,18 +167,18 @@ export const TaskPlanner: React.FC<TaskPlannerProps> = ({
             {/* Category */}
             <div>
               <label className="block font-mono text-[10px] font-bold text-[#2D3142] mb-1">
-                CATEGORY:
+                Category:
               </label>
               <select
                 id="task-category-select"
                 value={newCategory}
                 onChange={(e) => setNewCategory(e.target.value as any)}
-                className="w-full px-2 py-1 bg-[#FAF8F5] border-2 border-[#2D3142] font-mono text-xs font-bold text-[#2D3142] pixel-inset-soft uppercase"
+                className="w-full min-h-[38px] px-2 py-1 bg-[#FAF8F5] border-2 border-[#2D3142] font-mono text-xs font-bold text-[#2D3142] pixel-inset-soft"
               >
-                <option value="academic">ACADEMIC</option>
-                <option value="project">PROJECT</option>
-                <option value="life">LIFE / ADMIN</option>
-                <option value="wellness">WELLNESS</option>
+                <option value="academic">Academic</option>
+                <option value="project">Project</option>
+                <option value="life">Life / Admin</option>
+                <option value="wellness">Wellness</option>
               </select>
             </div>
           </div>
@@ -193,8 +189,8 @@ export const TaskPlanner: React.FC<TaskPlannerProps> = ({
       <div className="bg-[#FAF8F5] border-2 border-[#2D3142] p-4 sm:p-5 pixel-shadow">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-[#2D3142] pb-3 mb-3">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-xs sm:text-sm font-bold uppercase text-[#2D3142]">
-              ADAPTIVE TASK MATRIX ({filteredTasks.length})
+            <span className="font-mono text-xs sm:text-sm font-bold text-[#2D3142]">
+              Your Tasks ({filteredTasks.length})
             </span>
           </div>
 
@@ -208,7 +204,7 @@ export const TaskPlanner: React.FC<TaskPlannerProps> = ({
                   playMechanicalClick(soundEnabled);
                   setFilter(f);
                 }}
-                className={`pixel-btn px-2.5 py-0.5 border-2 border-[#2D3142] font-mono text-[11px] font-bold uppercase ${
+                className={`pixel-btn min-h-[32px] px-3 py-1 border-2 border-[#2D3142] font-mono text-[11px] font-bold capitalize rounded-xs ${
                   filter === f
                     ? 'bg-[#7FB685] text-[#2D3142] pixel-shadow-sm'
                     : 'bg-[#F2EFE9] text-[#2D3142]/70'
@@ -313,18 +309,18 @@ export const TaskPlanner: React.FC<TaskPlannerProps> = ({
                     </div>
 
                     {/* Dedicated Actions Row: Cleanly separated and easy to tap on phone */}
-                    <div className="mt-3 pt-2.5 border-t border-[#2D3142]/15 flex flex-wrap items-center justify-between gap-2 select-none">
+                    <div className="mt-3 pt-2.5 border-t border-[#2D3142]/15 flex flex-col xs:flex-row xs:items-center justify-between gap-2 select-none">
                       {/* Left: Subtasks indicator & Delete */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-between xs:justify-start gap-1.5 sm:gap-2 w-full xs:w-auto">
                         {task.subtasks.length > 0 && (
                           <button
                             id={`expand-subtasks-${task.id}`}
                             onClick={() => toggleExpand(task.id)}
-                            className="pixel-btn flex items-center gap-1 px-2 py-1 bg-[#FAF8F5] hover:bg-[#F2EFE9] border border-[#2D3142] rounded-xs font-mono text-[10px] font-bold text-[#2D3142]"
+                            className="pixel-btn min-h-[36px] flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 bg-[#FAF8F5] hover:bg-[#F2EFE9] border border-[#2D3142] rounded-xs font-mono text-[11px] sm:text-xs font-bold text-[#2D3142]"
                             title="Toggle subtasks checklist"
                           >
-                            <span>{completedSubtasks}/{task.subtasks.length} STEPS</span>
-                            {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                            <span>{completedSubtasks}/{task.subtasks.length} Steps</span>
+                            {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                           </button>
                         )}
 
@@ -335,14 +331,14 @@ export const TaskPlanner: React.FC<TaskPlannerProps> = ({
                             onDeleteTask(task.id);
                           }}
                           title="Delete task"
-                          className="pixel-btn p-1 text-[#2D3142]/60 hover:text-[#BA1A1A] hover:bg-[#FAF8F5] rounded-xs border border-transparent hover:border-[#2D3142]"
+                          className="pixel-btn min-h-[36px] min-w-[36px] flex items-center justify-center p-1.5 text-[#2D3142]/60 hover:text-[#BA1A1A] hover:bg-[#FAF8F5] rounded-xs border border-transparent hover:border-[#2D3142] ml-auto xs:ml-0"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
 
                       {/* Right: AI Breakdown & Focus Actions */}
-                      <div className="flex items-center gap-1.5 ml-auto">
+                      <div className="flex items-center gap-1.5 w-full xs:w-auto justify-end">
                         {!task.completed && (
                           <button
                             id={`breakdown-task-${task.id}`}
@@ -352,14 +348,14 @@ export const TaskPlanner: React.FC<TaskPlannerProps> = ({
                             }}
                             disabled={isDecomposing}
                             title="Decompose into small actionable micro-steps"
-                            className="pixel-btn px-2.5 py-1 bg-[#FAF8F5] hover:bg-[#CADBFB] border border-[#2D3142] rounded-xs font-mono text-[11px] font-bold text-[#2D3142] flex items-center gap-1"
+                            className="pixel-btn flex-1 xs:flex-initial justify-center min-h-[36px] sm:min-h-[38px] px-2.5 sm:px-3 py-1.5 bg-[#FAF8F5] hover:bg-[#CADBFB] border border-[#2D3142] rounded-xs font-mono text-[11px] sm:text-xs font-bold text-[#2D3142] flex items-center gap-1.5 whitespace-nowrap"
                           >
                             {isDecomposing ? (
-                              <Loader2 className="w-3 h-3 animate-spin text-[#7FB685]" />
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#7FB685]" />
                             ) : (
-                              <Sparkles className="w-3 h-3 text-[#F4A261]" />
+                              <Sparkles className="w-3.5 h-3.5 text-[#F4A261]" />
                             )}
-                            <span>{task.subtasks.length > 0 ? 'RE-BREAK' : 'BREAK DOWN'}</span>
+                            <span>{task.subtasks.length > 0 ? 'Re-Break' : 'Break Down'}</span>
                           </button>
                         )}
 
@@ -370,54 +366,57 @@ export const TaskPlanner: React.FC<TaskPlannerProps> = ({
                               playMechanicalClick(soundEnabled);
                               onStartFocusOnTask(task);
                             }}
-                            title="Start focus timer on this task"
-                            className="pixel-btn px-3 py-1 bg-[#7FB685] hover:bg-[#A3CFAB] border-2 border-[#2D3142] rounded-xs font-mono text-[11px] font-bold text-[#2D3142] flex items-center gap-1 pixel-shadow-sm"
+                            title="Start Focus Quest on this task"
+                            className="pixel-btn flex-1 xs:flex-initial justify-center min-h-[36px] sm:min-h-[38px] px-3 sm:px-3.5 py-1.5 bg-[#7FB685] hover:bg-[#A3CFAB] border-2 border-[#2D3142] rounded-xs font-mono text-[11px] sm:text-xs font-bold text-[#2D3142] flex items-center gap-1.5 pixel-shadow-sm whitespace-nowrap"
                           >
-                            <Play className="w-3 h-3 fill-current" />
-                            <span>FOCUS</span>
+                            <Play className="w-3.5 h-3.5 fill-current" />
+                            <span>Quest</span>
                           </button>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Subtasks Accordion Panel */}
+                  {/* Subtasks Accordion Panel (Full-Row Tap Targets) */}
                   {isExpanded && task.subtasks.length > 0 && (
-                    <div className="border-t-2 border-[#2D3142] bg-[#FAF8F5] p-3 space-y-1.5">
-                      <div className="flex items-center justify-between font-mono text-[10px] font-bold text-[#2D3142]/80 uppercase mb-1">
-                        <span>ACTIONABLE MICRO-STEPS ({completedSubtasks}/{task.subtasks.length} COMPLETE):</span>
+                    <div className="border-t-2 border-[#2D3142] bg-[#FAF8F5] p-3 space-y-2">
+                      <div className="flex items-center justify-between font-mono text-[11px] font-bold text-[#2D3142]/80 mb-1">
+                        <span>Actionable Steps ({completedSubtasks}/{task.subtasks.length} done):</span>
+                        <span className="text-[10px] text-[#2D3142]/60 font-sans">Tap row to check</span>
                       </div>
 
                       {task.subtasks.map((sub) => (
                         <div
                           key={sub.id}
-                          className={`flex items-start justify-between gap-2 p-2 border border-[#2D3142] rounded-xs ${
-                            sub.completed ? 'bg-[#E4DFD5]/40 opacity-75' : 'bg-[#FAF8F5]'
+                          id={`subtask-row-${sub.id}`}
+                          onClick={() => {
+                            if (!sub.completed) playQuestComplete(soundEnabled);
+                            else playMechanicalClick(soundEnabled);
+                            onToggleSubtask(task.id, sub.id);
+                          }}
+                          className={`cursor-pointer min-h-[44px] flex items-center justify-between gap-2.5 p-2.5 border border-[#2D3142] rounded-xs transition-colors select-none ${
+                            sub.completed ? 'bg-[#E4DFD5]/50 text-[#2D3142]/60' : 'bg-[#FAF8F5] hover:bg-[#CADBFB]'
                           }`}
                         >
-                          <div className="flex items-start gap-2 flex-1 min-w-0">
-                            <button
-                              id={`subtask-check-${sub.id}`}
-                              onClick={() => {
-                                if (!sub.completed) playQuestComplete(soundEnabled);
-                                else playMechanicalClick(soundEnabled);
-                                onToggleSubtask(task.id, sub.id);
-                              }}
-                              className="pixel-btn w-4 h-4 mt-0.5 border border-[#2D3142] bg-[#FAF8F5] flex items-center justify-center shrink-0 rounded-xs"
+                          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                            <div
+                              className={`w-5 h-5 rounded-xs border-2 border-[#2D3142] flex items-center justify-center shrink-0 ${
+                                sub.completed ? 'bg-[#7FB685] text-[#2D3142]' : 'bg-[#FAF8F5]'
+                              }`}
                             >
-                              {sub.completed && <Check className="w-3 h-3 text-[#35693F]" />}
-                            </button>
+                              {sub.completed && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                            </div>
                             <span
                               className={`font-sans text-xs text-[#2D3142] leading-snug break-words ${
-                                sub.completed ? 'line-through text-[#2D3142]/60' : ''
+                                sub.completed ? 'line-through text-[#2D3142]/60' : 'font-medium'
                               }`}
                             >
                               {sub.title}
                             </span>
                           </div>
 
-                          <span className="font-mono text-[10px] text-[#2D3142]/70 shrink-0 mt-0.5">
-                            ~{sub.estimatedMinutes}m • {sub.staminaPoints} SP
+                          <span className="font-mono text-[10px] text-[#2D3142]/70 shrink-0">
+                            ~{sub.estimatedMinutes}m · {sub.staminaPoints} SP
                           </span>
                         </div>
                       ))}

@@ -223,15 +223,15 @@ export const SensoryScreen: React.FC<SensoryScreenProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-[#2D3142] pb-3 mb-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-bold px-2 py-0.5 bg-[#7FB685] border border-[#2D3142] text-[#2D3142]">
-                CALM PACER
+              <span className="font-mono text-xs font-bold px-2 py-0.5 bg-[#7FB685] border border-[#2D3142] text-[#2D3142] rounded-xs">
+                Calm Pacer
               </span>
               <span className="font-mono text-xs font-bold text-[#2D3142]">
-                PARASYMPATHETIC REGULATION
+                Rhythmic Breathing
               </span>
             </div>
             <p className="font-sans text-xs text-[#2D3142]/70 mt-1">
-              Gentle breathing guides your heart rate and clears mental fog without pressure or game scores.
+              Rhythmic breathing guides heart rate and clears mental fog without pressure or timers.
             </p>
           </div>
 
@@ -244,17 +244,17 @@ export const SensoryScreen: React.FC<SensoryScreenProps> = ({
                 setRestSecondsLeft(120);
               }}
               title="Dim screen and take a quiet 2-minute visual break"
-              className="pixel-btn flex items-center gap-1.5 px-3 py-1.5 bg-[#F2EFE9] hover:bg-[#CADBFB] border border-[#2D3142] font-mono text-xs font-bold text-[#2D3142]"
+              className="pixel-btn min-h-[38px] flex items-center gap-1.5 px-3.5 py-1.5 bg-[#F2EFE9] hover:bg-[#CADBFB] border border-[#2D3142] font-mono text-xs font-bold text-[#2D3142] rounded-xs"
             >
               <EyeOff className="w-3.5 h-3.5" />
-              <span>2-MIN REST</span>
+              <span>2-Min Rest</span>
             </button>
 
             <button
               id="reset-breath-btn"
               onClick={handleResetBreath}
               title="Reset breath pace"
-              className="pixel-btn p-1.5 bg-[#F2EFE9] hover:bg-[#FAF8F5] border border-[#2D3142] text-[#2D3142]"
+              className="pixel-btn min-h-[38px] min-w-[38px] flex items-center justify-center p-2 bg-[#F2EFE9] hover:bg-[#FAF8F5] border border-[#2D3142] text-[#2D3142] rounded-xs"
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
@@ -262,7 +262,7 @@ export const SensoryScreen: React.FC<SensoryScreenProps> = ({
         </div>
 
         {/* Pattern Selection Tabs */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-6">
           {(['box', '478', 'gentle'] as BreathingPattern[]).map((patternKey) => {
             const pattern = PATTERNS[patternKey];
             const isSelected = selectedPattern === patternKey;
@@ -271,14 +271,14 @@ export const SensoryScreen: React.FC<SensoryScreenProps> = ({
                 key={patternKey}
                 id={`pattern-tab-${patternKey}`}
                 onClick={() => handleSelectPattern(patternKey)}
-                className={`pixel-btn p-3 border-2 border-[#2D3142] text-left transition-all ${
+                className={`pixel-btn min-h-[52px] p-3 border-2 border-[#2D3142] text-left transition-all rounded-xs ${
                   isSelected
                     ? 'bg-[#7FB685] text-[#2D3142] pixel-shadow font-bold'
                     : 'bg-[#F2EFE9] hover:bg-[#FAF8F5] text-[#2D3142]/80'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="font-mono text-xs font-bold uppercase">
+                  <span className="font-mono text-xs font-bold">
                     {pattern.name}
                   </span>
                   <span className="font-mono text-[10px]">
@@ -294,11 +294,11 @@ export const SensoryScreen: React.FC<SensoryScreenProps> = ({
         </div>
 
         {/* Interactive Breathing Canvas */}
-        <div className="bg-[#F2EFE9] border-2 border-[#2D3142] p-6 sm:p-8 pixel-inset-soft flex flex-col items-center justify-center text-center relative overflow-hidden">
+        <div className="bg-[#F2EFE9] border-2 border-[#2D3142] p-6 sm:p-8 pixel-inset-soft flex flex-col items-center justify-center text-center relative overflow-hidden rounded-xs">
           {/* Subtle background rhythm indicator */}
           <div className="mb-4">
-            <span className={`font-mono text-xs font-bold px-3 py-1 border border-[#2D3142] uppercase tracking-wider ${phaseColor}`}>
-              {isBreathingActive ? activePhase.name : 'READY'}
+            <span className={`font-mono text-xs font-bold px-3 py-1 border border-[#2D3142] rounded-xs tracking-wider ${phaseColor}`}>
+              {isBreathingActive ? activePhase.name : 'Ready'}
             </span>
           </div>
 
@@ -324,7 +324,7 @@ export const SensoryScreen: React.FC<SensoryScreenProps> = ({
                   <span className="font-mono text-3xl sm:text-4xl font-bold text-[#2D3142]">
                     {secondsRemainingInPhase}s
                   </span>
-                  <span className="font-mono text-[11px] uppercase tracking-wider text-[#2D3142]/80 mt-1">
+                  <span className="font-mono text-[11px] tracking-wider text-[#2D3142]/80 mt-1">
                     {activePhase.name}
                   </span>
                 </>
@@ -332,7 +332,7 @@ export const SensoryScreen: React.FC<SensoryScreenProps> = ({
                 <div className="flex flex-col items-center">
                   <Wind className="w-8 h-8 text-[#2D3142] mb-1 opacity-70" />
                   <span className="font-mono text-xs font-bold text-[#2D3142]">
-                    TAP START
+                    Tap Start
                   </span>
                 </div>
               )}
@@ -349,7 +349,7 @@ export const SensoryScreen: React.FC<SensoryScreenProps> = ({
             <button
               id="toggle-breath-pacer-btn"
               onClick={handleToggleBreathing}
-              className={`pixel-btn px-6 py-2.5 border-2 border-[#2D3142] font-mono text-xs sm:text-sm font-bold flex items-center gap-2 pixel-shadow ${
+              className={`pixel-btn min-h-[48px] px-6 py-3 border-2 border-[#2D3142] font-mono text-sm font-bold flex items-center gap-2 pixel-shadow rounded-xs ${
                 isBreathingActive
                   ? 'bg-[#F4A261] text-[#2D3142]'
                   : 'bg-[#7FB685] hover:bg-[#A3CFAB] text-[#2D3142]'
@@ -358,12 +358,12 @@ export const SensoryScreen: React.FC<SensoryScreenProps> = ({
               {isBreathingActive ? (
                 <>
                   <Pause className="w-4 h-4" />
-                  <span>PAUSE BREATHING</span>
+                  <span>Pause Breathing</span>
                 </>
               ) : (
                 <>
                   <Play className="w-4 h-4 fill-current" />
-                  <span>START BREATH PACER</span>
+                  <span>Start Breath Pacer</span>
                 </>
               )}
             </button>
@@ -384,12 +384,12 @@ export const SensoryScreen: React.FC<SensoryScreenProps> = ({
         <div className="bg-[#FAF8F5] border-2 border-[#2D3142] p-4 sm:p-5 pixel-shadow">
           <div className="flex items-center justify-between border-b-2 border-[#2D3142] pb-2 mb-3">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-bold text-[#2D3142] uppercase">
-                PHYSICAL RESET CHECKLIST
+              <span className="font-mono text-xs font-bold text-[#2D3142]">
+                Physical Reset Micro-Actions
               </span>
             </div>
             <span className="font-mono text-[10px] text-[#2D3142]/70">
-              SOMATIC COMFORT
+              Somatic Comfort
             </span>
           </div>
 
@@ -405,14 +405,14 @@ export const SensoryScreen: React.FC<SensoryScreenProps> = ({
                   key={item.id}
                   id={`physical-release-${item.id}`}
                   onClick={() => toggleRelease(item.id)}
-                  className={`pixel-btn w-full text-left p-2.5 border-2 border-[#2D3142] flex items-start gap-2.5 transition-all ${
+                  className={`pixel-btn min-h-[50px] w-full text-left p-2.5 border-2 border-[#2D3142] flex items-start gap-2.5 transition-all rounded-xs select-none ${
                     isChecked
                       ? 'bg-[#EBF3EC] text-[#2D3142]'
                       : 'bg-[#F2EFE9] hover:bg-[#FAF8F5] text-[#2D3142]'
                   }`}
                 >
                   <div
-                    className={`w-5 h-5 rounded-none border border-[#2D3142] flex items-center justify-center shrink-0 mt-0.5 ${
+                    className={`w-5 h-5 rounded-xs border-2 border-[#2D3142] flex items-center justify-center shrink-0 mt-0.5 ${
                       isChecked ? 'bg-[#7FB685] text-[#2D3142]' : 'bg-[#FAF8F5]'
                     }`}
                   >
@@ -440,11 +440,11 @@ export const SensoryScreen: React.FC<SensoryScreenProps> = ({
         <div className="bg-[#FAF8F5] border-2 border-[#2D3142] p-4 sm:p-5 pixel-shadow flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between border-b-2 border-[#2D3142] pb-2 mb-3">
-              <span className="font-mono text-xs font-bold text-[#2D3142] uppercase">
-                CALMING SOUNDSCAPES
+              <span className="font-mono text-xs font-bold text-[#2D3142]">
+                Calming Soundscapes
               </span>
               <span className="font-mono text-[10px] text-[#2D3142]/70">
-                AUDITORY MASKING
+                Auditory Masking
               </span>
             </div>
 
@@ -454,14 +454,14 @@ export const SensoryScreen: React.FC<SensoryScreenProps> = ({
 
             <div className="space-y-3">
               {/* Brown Noise / Rain Toggle */}
-              <div className="p-3 bg-[#F2EFE9] border-2 border-[#2D3142] flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-[#CADBFB] border border-[#2D3142] flex items-center justify-center">
+              <div className="p-3 bg-[#F2EFE9] border-2 border-[#2D3142] flex items-center justify-between rounded-xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 bg-[#CADBFB] border border-[#2D3142] flex items-center justify-center rounded-xs">
                     <CloudRain className="w-4 h-4 text-[#2D3142]" />
                   </div>
                   <div>
                     <div className="font-mono text-xs font-bold text-[#2D3142]">
-                      BROWN NOISE / RAIN HUM
+                      Rain & Brown Noise
                     </div>
                     <div className="font-sans text-[11px] text-[#2D3142]/70">
                       Gentle low-frequency sound blanket
@@ -475,25 +475,25 @@ export const SensoryScreen: React.FC<SensoryScreenProps> = ({
                     playMechanicalClick(soundEnabled);
                     if (onToggleAmbient) onToggleAmbient();
                   }}
-                  className={`pixel-btn px-3 py-1.5 border-2 border-[#2D3142] font-mono text-xs font-bold ${
+                  className={`pixel-btn min-h-[38px] px-3.5 py-1.5 border-2 border-[#2D3142] font-mono text-xs font-bold rounded-xs ${
                     ambientNoise
                       ? 'bg-[#7FB685] text-[#2D3142] pixel-shadow-sm'
                       : 'bg-[#FAF8F5] text-[#2D3142]/70'
                   }`}
                 >
-                  {ambientNoise ? 'PLAYING' : 'START'}
+                  {ambientNoise ? 'Playing' : 'Play'}
                 </button>
               </div>
 
               {/* Retro Lo-Fi Toggle */}
-              <div className="p-3 bg-[#F2EFE9] border-2 border-[#2D3142] flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-[#F4A261] border border-[#2D3142] flex items-center justify-center">
+              <div className="p-3 bg-[#F2EFE9] border-2 border-[#2D3142] flex items-center justify-between rounded-xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 bg-[#F4A261] border border-[#2D3142] flex items-center justify-center rounded-xs">
                     <Music className="w-4 h-4 text-[#2D3142]" />
                   </div>
                   <div>
                     <div className="font-mono text-xs font-bold text-[#2D3142]">
-                      COZY 8-BIT LO-FI
+                      Cozy 8-Bit Lo-Fi
                     </div>
                     <div className="font-sans text-[11px] text-[#2D3142]/70">
                       Soft acoustic jazz harmonic chords
@@ -507,13 +507,13 @@ export const SensoryScreen: React.FC<SensoryScreenProps> = ({
                     playMechanicalClick(soundEnabled);
                     if (onToggleRetroLofi) onToggleRetroLofi(!isRetroLofiActive);
                   }}
-                  className={`pixel-btn px-3 py-1.5 border-2 border-[#2D3142] font-mono text-xs font-bold ${
+                  className={`pixel-btn min-h-[38px] px-3.5 py-1.5 border-2 border-[#2D3142] font-mono text-xs font-bold rounded-xs ${
                     isRetroLofiActive
                       ? 'bg-[#7FB685] text-[#2D3142] pixel-shadow-sm'
                       : 'bg-[#FAF8F5] text-[#2D3142]/70'
                   }`}
                 >
-                  {isRetroLofiActive ? 'PLAYING' : 'START'}
+                  {isRetroLofiActive ? 'Playing' : 'Play'}
                 </button>
               </div>
             </div>

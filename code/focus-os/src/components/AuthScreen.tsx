@@ -19,7 +19,6 @@ import {
 
 interface AuthScreenProps {
   onLoginSuccess: (user: AuthUser, isNewUser: boolean) => void;
-  onContinueAsGuest: () => void;
   soundEnabled: boolean;
   onToggleSound?: () => void;
   logoutNotice?: string | null;
@@ -27,7 +26,6 @@ interface AuthScreenProps {
 
 export const AuthScreen: React.FC<AuthScreenProps> = ({
   onLoginSuccess,
-  onContinueAsGuest,
   soundEnabled,
   onToggleSound,
   logoutNotice,
@@ -222,36 +220,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
     }
   };
 
-  // Fast Demo Loaders
-  const loadDemoUser = (type: 'fresh-level-0' | 'alex-level-1' | 'guest') => {
-    playMechanicalClick(soundEnabled);
-    if (type === 'fresh-level-0') {
-      const freshUser: AuthUser = {
-        id: 'usr-demo-0',
-        username: 'student',
-        name: 'Taylor Reed',
-        email: 'student@study.local',
-        studyMajor: 'Cognitive Science',
-        dailyGoalMinutes: 30,
-        createdAt: Date.now(),
-      };
-      triggerBootSequence(freshUser, true);
-    } else if (type === 'alex-level-1') {
-      const alexUser: AuthUser = {
-        id: 'usr-demo-1',
-        username: 'alex',
-        name: 'Alex Chen',
-        email: 'alex@example.com',
-        studyMajor: 'Computer Science',
-        dailyGoalMinutes: 60,
-        createdAt: Date.now() - 86400000 * 7,
-      };
-      triggerBootSequence(alexUser, false);
-    } else {
-      onContinueAsGuest();
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-[#2D3142] flex flex-col items-center justify-center p-4 sm:p-6 select-none font-sans">
       {/* Calm, un-cluttered card */}
@@ -261,7 +229,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#7FB685]" />
             <span className="font-mono text-xs font-bold text-[#2D3142] tracking-wider">
-              COZY POCKET
+              focus.os
             </span>
           </div>
 
@@ -519,34 +487,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           </form>
         )}
 
-        {/* Quiet, Low-Pressure Quick Demos */}
-        <div className="mt-5 pt-3 border-t border-[#2D3142]/20 flex flex-col gap-1.5">
-          <span className="font-mono text-[10px] text-[#2D3142]/60">
-            Quick preview options:
-          </span>
-          <div className="flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              onClick={() => loadDemoUser('fresh-level-0')}
-              className="px-2 py-1 bg-[#F2EFE9] hover:bg-[#7FB685]/20 border border-[#2D3142]/30 font-mono text-[10px] text-[#2D3142] transition-colors"
-            >
-              🌱 Level 0 (Taylor)
-            </button>
-            <button
-              type="button"
-              onClick={() => loadDemoUser('alex-level-1')}
-              className="px-2 py-1 bg-[#F2EFE9] hover:bg-[#CADBFB]/40 border border-[#2D3142]/30 font-mono text-[10px] text-[#2D3142] transition-colors"
-            >
-              🎮 Returning (Alex)
-            </button>
-            <button
-              type="button"
-              onClick={() => loadDemoUser('guest')}
-              className="px-2 py-1 bg-[#F2EFE9] hover:bg-[#F8C390]/30 border border-[#2D3142]/30 font-mono text-[10px] text-[#2D3142] transition-colors"
-            >
-              Guest Mode
-            </button>
-          </div>
+        {/* Local Storage Indicator */}
+        <div className="mt-5 pt-3 border-t border-[#2D3142]/20 flex items-center justify-between text-[#2D3142]/60 font-mono text-[10px]">
+          <span>SAVE FILE: LOCAL DISK</span>
+          <span>focus.os ENCRYPTED</span>
         </div>
 
         {/* Soft, Calming Boot Transition */}

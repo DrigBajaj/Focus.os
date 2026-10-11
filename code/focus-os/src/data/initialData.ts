@@ -3,18 +3,18 @@ import { TaskItem, RoutineItem, DayActivity, MusicStation } from '../types';
 export const INITIAL_TASKS: TaskItem[] = [
   {
     id: 'task-1',
-    title: 'Work on DBMS assignment',
+    title: 'Finish DBMS assignment',
     priority: 'urgent',
     deadline: 'Tomorrow 5 PM',
-    estimatedMinutes: 40,
+    estimatedMinutes: 45,
     staminaPoints: 2,
     completed: false,
     category: 'academic',
-    notes: 'Due tomorrow, approximately 40 minutes remaining. Covers ER diagrams and SQL indexing.',
+    notes: 'Due tomorrow, estimated 45 min. Relational schema normalization & SQL indexing.',
     subtasks: [
-      { id: 'sub-1', title: 'Open DBMS question sheet and read problem 3', estimatedMinutes: 10, staminaPoints: 1, completed: true },
+      { id: 'sub-1', title: 'Open DBMS question sheet and read problem 3', estimatedMinutes: 10, staminaPoints: 1, completed: false },
       { id: 'sub-2', title: 'Draft schema normalization for relation R', estimatedMinutes: 15, staminaPoints: 1, completed: false },
-      { id: 'sub-3', title: 'Write SQL query for customer orders index', estimatedMinutes: 15, staminaPoints: 1, completed: false },
+      { id: 'sub-3', title: 'Write SQL query for customer orders index', estimatedMinutes: 20, staminaPoints: 1, completed: false },
     ],
     createdAt: Date.now() - 3600000 * 4,
   },
@@ -193,7 +193,7 @@ export const CURATED_MUSIC_STATIONS: MusicStation[] = [
     service: 'retro_lofi',
     type: 'stream',
     embedSrc: '',
-    curator: 'Cozy Pocket Audio Engine',
+    curator: 'focus.os Audio Engine',
     tag: '8-BIT RELAX',
   },
   {
@@ -253,14 +253,14 @@ export const SENSORY_GROUNDING_STEPS = [
 export const NEW_USER_INITIAL_TASKS: TaskItem[] = [
   {
     id: 'nu-task-1',
-    title: 'Orient to Cozy Pocket & test 10-minute focus timer',
+    title: 'Orient to focus.os & test 10-minute focus timer',
     priority: 'high',
     deadline: 'Today',
     estimatedMinutes: 10,
     staminaPoints: 1,
     completed: false,
     category: 'wellness',
-    notes: 'Welcome to your cartridge! Try pressing Start in the Focus screen.',
+    notes: 'Welcome to your focus.os cartridge! Try pressing Start in the Focus screen.',
     subtasks: [
       { id: 'nu-sub-1', title: 'Put phone on Do Not Disturb', estimatedMinutes: 2, staminaPoints: 1, completed: false },
       { id: 'nu-sub-2', title: 'Start a gentle 10-minute timer', estimatedMinutes: 8, staminaPoints: 1, completed: false },

@@ -76,14 +76,14 @@ export const CartridgeMemoryScreen: React.FC<CartridgeMemoryScreenProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full xs:w-auto">
             <button
               id="cartridge-switch-account-btn"
               onClick={() => {
                 playMechanicalClick(soundEnabled);
                 onSwitchAccount();
               }}
-              className="pixel-btn px-2.5 py-1.5 bg-[#F2EFE9] hover:bg-[#FAF8F5] border-2 border-[#2D3142] font-mono text-xs font-bold text-[#2D3142] flex items-center gap-1.5"
+              className="flex-1 xs:flex-initial justify-center pixel-btn px-2.5 py-1.5 bg-[#F2EFE9] hover:bg-[#FAF8F5] border-2 border-[#2D3142] font-mono text-xs font-bold text-[#2D3142] flex items-center gap-1.5"
             >
               <ArrowRightLeft className="w-3.5 h-3.5" />
               <span>SWITCH USER</span>
@@ -95,7 +95,7 @@ export const CartridgeMemoryScreen: React.FC<CartridgeMemoryScreenProps> = ({
                 playMechanicalClick(soundEnabled);
                 onLogout();
               }}
-              className="pixel-btn px-2.5 py-1.5 bg-[#ffdad6] hover:bg-[#ffb4ab] border-2 border-[#2D3142] font-mono text-xs font-bold text-[#93000a] flex items-center gap-1.5 pixel-shadow-sm"
+              className="flex-1 xs:flex-initial justify-center pixel-btn px-2.5 py-1.5 bg-[#ffdad6] hover:bg-[#ffb4ab] border-2 border-[#2D3142] font-mono text-xs font-bold text-[#93000a] flex items-center gap-1.5 pixel-shadow-sm"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>LOGOUT</span>
@@ -117,7 +117,7 @@ export const CartridgeMemoryScreen: React.FC<CartridgeMemoryScreenProps> = ({
           <HardDrive className="w-5 h-5 text-[#2D3142]" />
           <div>
             <div className="font-mono text-xs font-bold text-[#2D3142]">
-              CARTRIDGE SAVE SLOT 01: [COZY_FOCUS.SAV]
+              CARTRIDGE SAVE SLOT 01: [FOCUS_OS.SAV]
             </div>
             <div className="font-sans text-[11px] text-[#2D3142]/80">
               Auto-persisting to local console memory
@@ -192,7 +192,7 @@ export const CartridgeMemoryScreen: React.FC<CartridgeMemoryScreenProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2">
           {activityLog.map((day, i) => {
             const intensityClass =
               day.level === 3
@@ -206,20 +206,20 @@ export const CartridgeMemoryScreen: React.FC<CartridgeMemoryScreenProps> = ({
             return (
               <div
                 key={i}
-                className="bg-[#F2EFE9] border-2 border-[#2D3142] p-2 flex flex-col items-center justify-between text-center min-h-[70px]"
+                className="bg-[#F2EFE9] border-2 border-[#2D3142] p-1 sm:p-2 flex flex-col items-center justify-between text-center min-h-[58px] sm:min-h-[70px] min-w-0 overflow-hidden"
               >
-                <span className="font-mono text-[10px] font-bold text-[#2D3142]">
+                <span className="font-mono text-[8px] sm:text-[10px] font-bold text-[#2D3142] truncate w-full">
                   {day.date}
                 </span>
 
                 {/* Pixel intensity block */}
                 <div
-                  className={`w-6 h-6 border border-[#2D3142] flex items-center justify-center font-mono text-[10px] font-bold ${intensityClass}`}
+                  className={`min-w-[18px] max-w-full px-0.5 sm:px-1 h-5 sm:h-6 border border-[#2D3142] flex items-center justify-center font-mono text-[8px] xs:text-[9px] sm:text-[10px] font-bold truncate ${intensityClass}`}
                 >
                   {day.minutesFocused}m
                 </div>
 
-                <span className="font-mono text-[9px] text-[#2D3142]/70">
+                <span className="font-mono text-[8px] sm:text-[9px] text-[#2D3142]/70 truncate w-full">
                   {day.questsCompleted}Q
                 </span>
               </div>

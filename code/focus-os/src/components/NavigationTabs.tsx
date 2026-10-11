@@ -66,7 +66,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
     },
     {
       id: 'focus',
-      label: 'Focus',
+      label: 'Quest',
       icon: <Timer className="w-4 h-4 sm:w-5 sm:h-5" />,
       hasPulse: isTimerRunning,
     },
@@ -98,45 +98,45 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
   }[] = [
     {
       id: 'whatnow',
-      label: 'WHAT NOW?',
-      sub: 'PRIORITY GUIDE',
+      label: 'What Now',
+      sub: 'Priority Guide',
       icon: <Sparkles className="w-4 h-4" />,
     },
     {
       id: 'focus',
-      label: 'FOCUS',
-      sub: 'TIMER & GOAL',
+      label: 'Focus Quest',
+      sub: 'Paced Sprint',
       icon: <Timer className="w-4 h-4" />,
     },
     {
       id: 'planner',
-      label: 'TASKS',
-      sub: 'STEP BREAKDOWN',
+      label: 'Tasks',
+      sub: 'Step Planner',
       icon: <CheckSquare className="w-4 h-4" />,
       badge: activeTasksCount,
     },
     {
       id: 'routines',
-      label: 'ROUTINES',
-      sub: 'DAILY HABITS',
+      label: 'Routines',
+      sub: 'Daily Habits',
       icon: <Repeat className="w-4 h-4" />,
     },
     {
       id: 'sensory',
-      label: 'CALM',
-      sub: 'BREATHE & RESET',
+      label: 'Calm',
+      sub: 'Breathe & Reset',
       icon: <Wind className="w-4 h-4" />,
     },
     {
       id: 'music',
-      label: 'MUSIC',
-      sub: 'LO-FI & FOCUS',
+      label: 'Music',
+      sub: 'Lo-Fi Focus',
       icon: <Music className="w-4 h-4" />,
     },
     {
       id: 'cartridge',
-      label: 'MEMORY',
-      sub: 'LOG & NOTES',
+      label: 'Memory',
+      sub: 'Log & Notes',
       icon: <HardDrive className="w-4 h-4" />,
     },
   ];
@@ -186,7 +186,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
                   )}
                 </div>
 
-                <div className="font-mono text-xs tracking-wider uppercase truncate w-full">
+                <div className="font-mono text-xs font-bold truncate w-full">
                   {tab.label}
                 </div>
                 <div className="font-sans text-[9px] text-[#2D3142]/70 tracking-tight truncate w-full mt-0.5">
@@ -219,13 +219,13 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
                   key={tab.id}
                   id={`mobile-nav-${tab.id}`}
                   onClick={() => handleTabClick(tab.id)}
-                  className={`pixel-btn relative flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all ${
+                  className={`pixel-btn relative flex-1 flex flex-col items-center justify-center py-1.5 sm:py-2 px-0.5 sm:px-1 rounded-xl transition-all ${
                     isActive
                       ? 'bg-[#7FB685] border-2 border-[#2D3142] text-[#2D3142] font-bold pixel-shadow-sm'
                       : 'bg-transparent border-2 border-transparent hover:bg-[#F2EFE9] text-[#2D3142]/75'
                   }`}
                 >
-                  <div className="relative mb-1">
+                  <div className="relative mb-0.5 sm:mb-1">
                     {tab.icon}
 
                     {/* Active pulse on timer */}
@@ -241,7 +241,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
                     )}
                   </div>
 
-                  <span className="font-mono text-[10px] tracking-tight leading-none">
+                  <span className="font-mono text-[9px] xs:text-[10px] tracking-tight leading-none">
                     {tab.label}
                   </span>
                 </button>
@@ -308,7 +308,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
                     MORE TOOLS
                   </span>
                   <span className="font-mono text-xs font-bold text-[#2D3142]">
-                    COZY SHORTCUTS
+                    FOCUS SHORTCUTS
                   </span>
                 </div>
 

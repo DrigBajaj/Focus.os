@@ -181,7 +181,7 @@ async function startServer() {
     const ai = getGeminiClient();
     if (ai) {
       try {
-        const prompt = `You are an ADHD productivity assistant for the "Cozy Pastel Pixel" focus app.
+        const prompt = `You are an ADHD productivity assistant for the "focus.os" focus companion app.
 Break down this large or vague task into 3 to 5 tiny, concrete, actionable, low-friction micro-steps designed to overcome task paralysis and initiation friction.
 Task: "${taskTitle}"
 Estimated total time: ${totalMinutes || 45} minutes.
@@ -264,7 +264,7 @@ No extra text, markdown ticks or formatting outside the JSON array.`;
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Cozy Pastel Pixel server running on http://0.0.0.0:${PORT}`);
+    console.log(`focus.os server running on http://0.0.0.0:${PORT}`);
   });
 }
 

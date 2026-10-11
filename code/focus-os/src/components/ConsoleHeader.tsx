@@ -25,19 +25,19 @@ export const ConsoleHeader: React.FC<ConsoleHeaderProps> = ({
   onOpenSettings,
 }) => {
   return (
-    <header className="w-full bg-[#FAF8F5] border-b-2 border-[#2D3142] pb-3 pt-2 px-3 sm:px-6 select-none">
+    <header className="w-full bg-[#FAF8F5] border-b-2 border-[#2D3142] pb-2 sm:pb-3 pt-2 px-2 sm:px-6 select-none overflow-hidden">
       {/* Handheld top status bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 max-w-5xl mx-auto">
+      <div className="flex items-center justify-between gap-1 sm:gap-2 max-w-5xl mx-auto w-full">
         {/* Console brand logo & model */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <div className="w-3 h-3 bg-[#7FB685] border border-[#2D3142] pixel-shadow-sm flex items-center justify-center">
             <div className="w-1 h-1 bg-[#FAF8F5]" />
           </div>
-          <div className="flex items-baseline gap-1.5">
+          <div className="flex items-baseline gap-1">
             <span className="font-mono text-sm sm:text-base font-bold tracking-tight text-[#2D3142]">
-              COZY POCKET
+              focus.os
             </span>
-            <span className="font-mono text-[10px] font-bold px-1 py-0.2 bg-[#CADBFB] border border-[#2D3142] text-[#2D3142]">
+            <span className="hidden xs:inline font-mono text-[9px] sm:text-[10px] font-bold px-1 py-0.2 bg-[#CADBFB] border border-[#2D3142] text-[#2D3142]">
               DMG-09
             </span>
           </div>
@@ -55,18 +55,18 @@ export const ConsoleHeader: React.FC<ConsoleHeaderProps> = ({
         </div>
 
         {/* Right status, user account & tactile toggles */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 min-w-0">
           {/* User Account / Auth Section */}
           {currentUser ? (
-            <div className="flex items-center gap-1 bg-[#F2EFE9] border-2 border-[#2D3142] px-1.5 py-0.5 pixel-inset-soft">
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-[#F2EFE9] border border-[#2D3142] sm:border-2 px-1 sm:px-1.5 py-0.5 pixel-inset-soft rounded-xs max-w-[130px] sm:max-w-none">
               <div
                 title={`Signed in as ${currentUser.name} (${currentUser.studyMajor || 'Learner'})`}
-                className="flex items-center gap-1 cursor-default"
+                className="flex items-center gap-1 cursor-default min-w-0"
               >
-                <div className="w-4 h-4 bg-[#7FB685] border border-[#2D3142] flex items-center justify-center text-[10px]">
+                <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 bg-[#7FB685] border border-[#2D3142] flex items-center justify-center text-[9px] sm:text-[10px] shrink-0">
                   👤
                 </div>
-                <span className="font-mono text-[11px] font-bold text-[#2D3142] max-w-[80px] sm:max-w-[120px] truncate">
+                <span className="font-mono text-[10px] sm:text-[11px] font-bold text-[#2D3142] max-w-[48px] xs:max-w-[70px] sm:max-w-[120px] truncate">
                   {currentUser.name}
                 </span>
               </div>
@@ -78,11 +78,11 @@ export const ConsoleHeader: React.FC<ConsoleHeaderProps> = ({
                   playMechanicalClick(soundEnabled);
                   onLogout();
                 }}
-                title="Sign out of Cozy Pocket"
-                className="pixel-btn ml-1 flex items-center gap-1 px-1.5 py-0.5 bg-[#FAF8F5] hover:bg-[#ffdad6] border border-[#2D3142] font-mono text-[10px] font-bold text-[#ba1a1a]"
+                title="Sign out of focus.os"
+                className="pixel-btn ml-0.5 flex items-center gap-0.5 px-1 py-0.5 bg-[#FAF8F5] hover:bg-[#ffdad6] border border-[#2D3142] font-mono text-[9px] sm:text-[10px] font-bold text-[#ba1a1a] rounded-xs shrink-0"
               >
                 <LogOut className="w-3 h-3" />
-                <span className="hidden sm:inline">LOGOUT</span>
+                <span className="hidden sm:inline">Logout</span>
               </button>
             </div>
           ) : (
@@ -93,10 +93,10 @@ export const ConsoleHeader: React.FC<ConsoleHeaderProps> = ({
                 onOpenAuth();
               }}
               title="Sign in or create account"
-              className="pixel-btn flex items-center gap-1 px-2 py-1 bg-[#7FB685] border-2 border-[#2D3142] font-mono text-[11px] font-bold text-[#2D3142] pixel-shadow-sm"
+              className="pixel-btn flex items-center gap-1 px-2 py-1 bg-[#7FB685] border-2 border-[#2D3142] font-mono text-[10px] sm:text-[11px] font-bold text-[#2D3142] pixel-shadow-sm rounded-xs shrink-0"
             >
               <LogIn className="w-3.5 h-3.5" />
-              <span>SIGN IN</span>
+              <span>Sign In</span>
             </button>
           )}
 
@@ -107,33 +107,33 @@ export const ConsoleHeader: React.FC<ConsoleHeaderProps> = ({
               playMechanicalClick(true);
               onToggleSound();
             }}
-            title="Toggle 8-bit sound effects"
-            className={`pixel-btn flex items-center gap-1 px-2 py-1 border-2 border-[#2D3142] font-mono text-[11px] font-bold ${
+            title="Toggle sound effects"
+            className={`pixel-btn flex items-center justify-center p-1 sm:px-2 sm:py-1 border border-[#2D3142] sm:border-2 font-mono text-[10px] sm:text-[11px] font-bold rounded-xs shrink-0 ${
               soundEnabled
                 ? 'bg-[#CADBFB] text-[#2D3142] pixel-shadow-sm'
                 : 'bg-[#F2EFE9] text-[#2D3142]/60'
             }`}
           >
             {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-            <span className="hidden sm:inline">{soundEnabled ? 'FX' : 'MUTE'}</span>
+            <span className="hidden sm:inline ml-1">{soundEnabled ? 'FX' : 'Mute'}</span>
           </button>
 
-          {/* Ambient Rain / White Noise Toggle */}
+          {/* Ambient Rain / Noise Toggle */}
           <button
             id="toggle-ambient-btn"
             onClick={() => {
               playMechanicalClick(soundEnabled);
               onToggleAmbient();
             }}
-            title="Toggle cozy soothing brown noise hum"
-            className={`pixel-btn flex items-center gap-1 px-2 py-1 border-2 border-[#2D3142] font-mono text-[11px] font-bold ${
+            title="Toggle soothing background noise"
+            className={`pixel-btn flex items-center justify-center p-1 sm:px-2 sm:py-1 border border-[#2D3142] sm:border-2 font-mono text-[10px] sm:text-[11px] font-bold rounded-xs shrink-0 ${
               ambientNoise
                 ? 'bg-[#F8C390] text-[#2D3142] pixel-shadow-sm'
                 : 'bg-[#F2EFE9] text-[#2D3142]/60'
             }`}
           >
             <CloudRain className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{ambientNoise ? 'RAIN' : 'RAIN OFF'}</span>
+            <span className="hidden sm:inline ml-1">{ambientNoise ? 'Rain' : 'Rain Off'}</span>
           </button>
 
           {/* Settings & Font Config Button */}
@@ -144,11 +144,11 @@ export const ConsoleHeader: React.FC<ConsoleHeaderProps> = ({
                 playMechanicalClick(soundEnabled);
                 onOpenSettings();
               }}
-              title="Open console settings, fonts & pet configuration"
-              className="pixel-btn flex items-center gap-1 px-2 py-1 bg-[#FAF8F5] hover:bg-[#CADBFB] border-2 border-[#2D3142] font-mono text-[11px] font-bold text-[#2D3142] pixel-shadow-sm"
+              title="Open console settings & pet configuration"
+              className="pixel-btn flex items-center justify-center p-1 sm:px-2 sm:py-1 bg-[#FAF8F5] hover:bg-[#CADBFB] border border-[#2D3142] sm:border-2 font-mono text-[10px] sm:text-[11px] font-bold text-[#2D3142] pixel-shadow-sm rounded-xs shrink-0"
             >
               <Settings className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">SETTINGS</span>
+              <span className="hidden sm:inline ml-1">Settings</span>
             </button>
           )}
         </div>

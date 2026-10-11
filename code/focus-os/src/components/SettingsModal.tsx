@@ -158,7 +158,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               CONFIG MENU
             </span>
             <span className="font-mono text-xs font-bold text-[#2D3142]">
-              CONSOLE SETTINGS & PET LAB
+              focus.os SETTINGS & PET LAB
             </span>
           </div>
 
@@ -176,21 +176,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         {/* Tab Selector Row */}
-        <div className="flex border-b-2 border-[#2D3142] bg-[#F2EFE9] overflow-x-auto">
+        <div className="grid grid-cols-4 border-b-2 border-[#2D3142] bg-[#F2EFE9]">
           <button
             id="settings-tab-fonts"
             onClick={() => {
               playMechanicalClick(soundEnabled);
               setActiveTab('fonts');
             }}
-            className={`pixel-btn flex-1 py-2 px-3 font-mono text-xs font-bold flex items-center justify-center gap-1.5 border-r border-[#2D3142] whitespace-nowrap transition-colors ${
+            className={`pixel-btn min-h-[40px] py-2 px-1 sm:px-3 font-mono text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 border-r border-[#2D3142] transition-colors ${
               activeTab === 'fonts'
                 ? 'bg-[#FAF8F5] text-[#2D3142] border-b-2 border-b-[#FAF8F5] -mb-[2px] font-bold'
                 : 'bg-transparent text-[#2D3142]/70 hover:bg-[#FAF8F5]/60'
             }`}
           >
-            <Type className="w-3.5 h-3.5" />
-            <span>FONTS & TEXT</span>
+            <Type className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden sm:inline">FONTS & TEXT</span>
+            <span className="sm:hidden">FONTS</span>
           </button>
 
           <button
@@ -199,14 +200,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               playMechanicalClick(soundEnabled);
               setActiveTab('pet');
             }}
-            className={`pixel-btn flex-1 py-2 px-3 font-mono text-xs font-bold flex items-center justify-center gap-1.5 border-r border-[#2D3142] whitespace-nowrap transition-colors ${
+            className={`pixel-btn min-h-[40px] py-2 px-1 sm:px-3 font-mono text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 border-r border-[#2D3142] transition-colors ${
               activeTab === 'pet'
                 ? 'bg-[#FAF8F5] text-[#2D3142] border-b-2 border-b-[#FAF8F5] -mb-[2px] font-bold'
                 : 'bg-transparent text-[#2D3142]/70 hover:bg-[#FAF8F5]/60'
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5 text-[#F4A261]" />
-            <span>PET & EVOLUTIONS</span>
+            <Sparkles className="w-3.5 h-3.5 text-[#F4A261] shrink-0" />
+            <span className="hidden sm:inline">PET & EVO</span>
+            <span className="sm:hidden">PET</span>
           </button>
 
           <button
@@ -215,14 +217,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               playMechanicalClick(soundEnabled);
               setActiveTab('rewards');
             }}
-            className={`pixel-btn flex-1 py-2 px-3 font-mono text-xs font-bold flex items-center justify-center gap-1.5 border-r border-[#2D3142] whitespace-nowrap transition-colors ${
+            className={`pixel-btn min-h-[40px] py-2 px-1 sm:px-3 font-mono text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 border-r border-[#2D3142] transition-colors ${
               activeTab === 'rewards'
                 ? 'bg-[#FAF8F5] text-[#2D3142] border-b-2 border-b-[#FAF8F5] -mb-[2px] font-bold'
                 : 'bg-transparent text-[#2D3142]/70 hover:bg-[#FAF8F5]/60'
             }`}
           >
-            <Heart className="w-3.5 h-3.5 text-[#E76F51]" />
-            <span>WORK & FEEDING</span>
+            <Heart className="w-3.5 h-3.5 text-[#E76F51] shrink-0" />
+            <span className="hidden sm:inline">RULES</span>
+            <span className="sm:hidden">RULES</span>
           </button>
 
           <button
@@ -231,13 +234,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               playMechanicalClick(soundEnabled);
               setActiveTab('sound');
             }}
-            className={`pixel-btn flex-1 py-2 px-3 font-mono text-xs font-bold flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors ${
+            className={`pixel-btn min-h-[40px] py-2 px-1 sm:px-3 font-mono text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition-colors ${
               activeTab === 'sound'
                 ? 'bg-[#FAF8F5] text-[#2D3142] border-b-2 border-b-[#FAF8F5] -mb-[2px] font-bold'
                 : 'bg-transparent text-[#2D3142]/70 hover:bg-[#FAF8F5]/60'
             }`}
           >
-            <Volume2 className="w-3.5 h-3.5" />
+            <Volume2 className="w-3.5 h-3.5 shrink-0" />
             <span>AUDIO</span>
           </button>
         </div>
@@ -657,7 +660,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* Modal Footer */}
         <div className="p-3 bg-[#FAF8F5] border-t-2 border-[#2D3142] flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-[#2D3142]/70 font-mono text-[10px]">
-            <span>COZY POCKET DMG-09</span>
+            <span>focus.os DMG-09</span>
             <span>•</span>
             <span>SETTINGS STORED LOCALLY</span>
           </div>

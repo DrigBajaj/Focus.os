@@ -116,7 +116,7 @@ export const PixelPet: React.FC<PixelPetProps> = ({
                     ? `Feed ${speciesConfig.foodName}`
                     : 'Complete a task or timer to harvest food!'
                 }
-                className={`pixel-btn flex items-center gap-1 px-2.5 py-1 border rounded-md font-mono text-[11px] font-bold ${
+                className={`pixel-btn flex items-center gap-1 px-2 py-1 border rounded-md font-mono text-[10px] xs:text-[11px] font-bold ${
                   hasFood
                     ? 'bg-[#F8C390] hover:bg-[#F4A261] border-[#2D3142] text-[#2D3142]'
                     : 'bg-[#E4DFD5] border-[#2D3142]/50 text-[#2D3142]/60 cursor-not-allowed'
@@ -130,7 +130,7 @@ export const PixelPet: React.FC<PixelPetProps> = ({
                 ) : (
                   <>
                     <Lock className="w-3 h-3 text-[#2D3142]/60" />
-                    <span>0 {speciesConfig.foodEmoji} (WORK XP)</span>
+                    <span>0 {speciesConfig.foodEmoji}</span>
                   </>
                 )}
               </button>
@@ -147,8 +147,8 @@ export const PixelPet: React.FC<PixelPetProps> = ({
           </div>
 
           {/* Dedicated Daily Streak Bar on Mobile - Perfectly visible & accessible */}
-          <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#2D3142]/20 font-mono text-[10px]">
-            <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#2D3142]/20 font-mono text-[10px] overflow-hidden">
+            <div className="flex items-center gap-1.5 min-w-0 truncate">
               <span className="text-[#8E4E14] font-bold shrink-0">STREAK:</span>
               <DailyStreakCounter
                 streakInfo={streakInfo}
@@ -159,8 +159,8 @@ export const PixelPet: React.FC<PixelPetProps> = ({
 
             {/* Target focus progress indicator */}
             <div className="flex items-center gap-1.5 shrink-0 text-[#2D3142]/80">
-              <span>{streakInfo.todayMinutes}/{streakInfo.targetMinutes}m</span>
-              <div className="w-12 bg-[#E4DFD5] border border-[#2D3142] h-2 rounded-xs overflow-hidden">
+              <span className="whitespace-nowrap">{streakInfo.todayMinutes}/{streakInfo.targetMinutes}m</span>
+              <div className="w-10 xs:w-12 bg-[#E4DFD5] border border-[#2D3142] h-2 rounded-xs overflow-hidden">
                 <div
                   className={`h-full transition-all duration-300 ${
                     streakInfo.isTodayTargetMet ? 'bg-[#7FB685]' : 'bg-[#F4A261]'
@@ -328,11 +328,11 @@ export const PixelPet: React.FC<PixelPetProps> = ({
                 <button
                   id="feed-berry-btn"
                   onClick={handlePetFeed}
-                  className="pixel-btn w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#F8C390] hover:bg-[#F4A261] border-2 border-[#2D3142] font-mono text-xs font-bold text-[#2D3142] pixel-shadow-sm"
+                  className="pixel-btn w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#F8C390] hover:bg-[#F4A261] border-2 border-[#2D3142] font-mono text-xs font-bold text-[#2D3142] pixel-shadow-sm text-center"
                 >
-                  <Heart className="w-3.5 h-3.5 fill-[#8E4E14] text-[#8E4E14]" />
-                  <span>
-                    FEED {speciesConfig.foodName.toUpperCase()} ({pet.berriesAvailable} IN BAG) • +30 XP
+                  <Heart className="w-3.5 h-3.5 fill-[#8E4E14] text-[#8E4E14] shrink-0" />
+                  <span className="truncate">
+                    FEED {speciesConfig.foodName.toUpperCase()} ({pet.berriesAvailable}) • +30 XP
                   </span>
                 </button>
               ) : (
@@ -340,10 +340,10 @@ export const PixelPet: React.FC<PixelPetProps> = ({
                   <button
                     id="feed-berry-btn-disabled"
                     disabled
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#E4DFD5] border-2 border-[#2D3142]/60 font-mono text-xs font-bold text-[#2D3142]/60 cursor-not-allowed"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#E4DFD5] border-2 border-[#2D3142]/60 font-mono text-xs font-bold text-[#2D3142]/60 cursor-not-allowed text-center"
                   >
-                    <Lock className="w-3.5 h-3.5" />
-                    <span>OUT OF FOOD (0 {speciesConfig.foodEmoji} AVAILABLE)</span>
+                    <Lock className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">OUT OF FOOD (0 {speciesConfig.foodEmoji} AVAILABLE)</span>
                   </button>
                   <div className="flex items-center justify-center gap-1 font-mono text-[10px] text-[#8E4E14] bg-[#FFF3E8] border border-[#F4A261] px-2 py-0.5 rounded-xs text-center">
                     <span>💡 Complete a task, routine, or timer to harvest treats!</span>

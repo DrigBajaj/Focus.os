@@ -11,7 +11,7 @@ import { SensoryScreen } from './components/SensoryScreen';
 import { CartridgeMemoryScreen } from './components/CartridgeMemoryScreen';
 import { AuthScreen } from './components/AuthScreen';
 import { SettingsModal } from './components/SettingsModal';
-import { ScreenTab, TaskItem, RoutineItem, DayActivity, PetState, Subtask, AuthUser, FontSettings } from './types';
+import { ScreenTab, TaskItem, RoutineItem, DayActivity, PetState, Subtask, AuthUser, FontSettings, FocusQuestConfig } from './types';
 import {
   INITIAL_TASKS,
   INITIAL_ROUTINES,
@@ -251,6 +251,88 @@ export default function App() {
       }
       return copy;
     });
+  };
+
+  // Complete a Focus Quest session -> Awards +50 XP, +10 Happiness (+2 treats), and Maintains Streak!
+  const handleQuestComplete = (questConfig: FocusQuestConfig, minutes: number, taskId?: string) => {
+    const xpReward = questConfig.xpReward || 50;
+    const treatsEarned = 2; // +10 Pet Happiness gives +2 treats harvested into bag!
+
+    setPet((prev) => {
+      const newExp = prev.exp + xpReward;
+      const nextLevel = newExp >= prev.maxExp ? prev.level + 1 : prev.level;
+      const evolved = nextLevel > prev.level;
+
+      if (evolved) {
+        playVictoryFanfare(soundEnabled);
+        const stage = getCurrentPetStage(prev.id, nextLevel);
+        setEvolutionToast({
+          title: stage.title,
+          petName: prev.name,
+          species: prev.id,
+          level: nextLevel,
+        });
+        setTimeout(() => setEvolutionToast(null), 4500);
+      }
+
+      return {
+        ...prev,
+        level: nextLevel,
+        exp: newExp >= prev.maxExp ? newExp - prev.maxExp : newExp,
+        maxExp: evolved ? Math.round(prev.maxExp * 1.35) : prev.maxExp,
+        mood: 'celebrating',
+        berriesAvailable: prev.berriesAvailable + treatsEarned,
+        totalWorkExpEarned: (prev.totalWorkExpEarned || 0) + xpReward,
+      };
+    });
+
+    // Update today's activity log and maintain streak
+    const dailyTarget = currentUser?.dailyGoalMinutes || 30;
+    setActivityLog((prev) => {
+      const copy = [...prev];
+      const todayIdx = copy.length - 1;
+      if (todayIdx >= 0) {
+        const today = copy[todayIdx];
+        const prevMins = today.minutesFocused;
+        const newMins = prevMins + minutes;
+        copy[todayIdx] = {
+          ...today,
+          minutesFocused: newMins,
+          questsCompleted: (today.questsCompleted || 0) + 1,
+          level: newMins >= 60 ? 3 : newMins >= 30 ? 2 : 1,
+        };
+
+        const computed = calculateDailyStreak(copy, dailyTarget);
+        recordStreakTargetMet(computed.currentStreak);
+
+        if (prevMins < dailyTarget && newMins >= dailyTarget) {
+          playVictoryFanfare(soundEnabled);
+          setStreakToast({
+            streak: computed.currentStreak,
+            minutes: newMins,
+            target: dailyTarget,
+          });
+          setTimeout(() => setStreakToast(null), 5000);
+        }
+      }
+      return copy;
+    });
+
+    // Mark task completed if specified
+    if (taskId) {
+      setTasks((prev) =>
+        prev.map((t) => {
+          if (t.id === taskId) {
+            return {
+              ...t,
+              completed: true,
+              subtasks: t.subtasks.map((s) => ({ ...s, completed: true })),
+            };
+          }
+          return t;
+        })
+      );
+    }
   };
 
   // Start focus on a selected task
@@ -558,55 +640,18 @@ export default function App() {
         totalWorkExpEarned: 0,
       });
       setScratchpad(
-        `• Welcome to Cozy Pocket, ${user.name}!\n• Academic focus: ${user.studyMajor || 'Your studies'}\n• Daily Target: ${user.dailyGoalMinutes || 30} minutes\n• Level 0 Cartridge initialized. Take your first gentle 5-minute study sprint to awaken Sprout!`
+        `• Welcome to focus.os, ${user.name}!\n• Academic focus: ${user.studyMajor || 'Your studies'}\n• Daily Target: ${user.dailyGoalMinutes || 30} minutes\n• Level 0 Cartridge initialized. Take your first gentle 5-minute study sprint to awaken Sprout!`
       );
       setCurrentTab('whatnow');
     }
   };
 
-  const handleContinueAsGuest = () => {
-    const guestUser: AuthUser = {
-      id: 'usr-guest',
-      username: 'guest',
-      name: 'Guest Explorer',
-      email: 'guest@study.local',
-      studyMajor: 'Self-Paced Study',
-      dailyGoalMinutes: 30,
-      createdAt: Date.now(),
-    };
-    setCurrentUser(guestUser);
-    localStorage.setItem('cozy_pixel_current_user', JSON.stringify(guestUser));
-    setLogoutNotice(null);
-
-    // Fresh Level 0 setup for guest
-    setTasks(NEW_USER_INITIAL_TASKS);
-    setActiveFocusTask(NEW_USER_INITIAL_TASKS[0]);
-    setRoutines(NEW_USER_ROUTINES);
-    setActivityLog(NEW_USER_WEEK_ACTIVITY);
-    setPet({
-      id: 'sprout',
-      name: 'Sprout',
-      level: 0,
-      exp: 0,
-      maxExp: 30,
-      mood: 'sleeping',
-      berriesAvailable: 1,
-      berriesFed: 0,
-      totalWorkExpEarned: 0,
-    });
-    setScratchpad(
-      `• Welcome Guest Explorer!\n• Level: 0 (Day 1 Cartridge)\n• Daily Target: 30 minutes\n• Complete your first focus timer to wake Sprout up!`
-    );
-    setCurrentTab('whatnow');
-  };
-
-  // If user is not authenticated, show ONLY the whimsical standalone Login/Signup page
+  // If user is not authenticated, show ONLY the standalone Login/Signup page
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-[#FAF8F5] text-[#2D3142] flex flex-col font-sans selection:bg-[#B4C5E4]">
         <AuthScreen
           onLoginSuccess={handleLoginSuccess}
-          onContinueAsGuest={handleContinueAsGuest}
           soundEnabled={soundEnabled}
           onToggleSound={() => setSoundEnabled(!soundEnabled)}
           logoutNotice={logoutNotice}
@@ -707,15 +752,17 @@ export default function App() {
             onOpenSettings={() => setIsSettingsOpen(true)}
           />
 
-          {/* Virtual Companion Pet - Always accessible at top */}
-          <PixelPet
-            pet={pet}
-            onFeedBerry={handleFeedBerry}
-            onOpenPetSettings={() => setIsSettingsOpen(true)}
-            soundEnabled={soundEnabled}
-            isFocusActive={isTimerRunning}
-            streakInfo={streakInfo}
-          />
+          {/* Virtual Companion Pet - Shown on other tabs; hidden on Focus tab where the interactive Focus Quest Pet takes center stage */}
+          {currentTab !== 'focus' && (
+            <PixelPet
+              pet={pet}
+              onFeedBerry={handleFeedBerry}
+              onOpenPetSettings={() => setIsSettingsOpen(true)}
+              soundEnabled={soundEnabled}
+              isFocusActive={isTimerRunning}
+              streakInfo={streakInfo}
+            />
+          )}
 
           {/* Active Screen Display Area */}
           <div className="w-full transition-all">
@@ -724,12 +771,20 @@ export default function App() {
               <FocusScreen
                 soundEnabled={soundEnabled}
                 onSessionComplete={handleSessionComplete}
+                onQuestComplete={handleQuestComplete}
                 isTimerRunning={isTimerRunning}
                 setIsTimerRunning={setIsTimerRunning}
                 activeTask={activeFocusTask}
+                tasks={tasks}
+                onSelectActiveTask={(task) => setActiveFocusTask(task)}
                 onClearActiveTask={() => setActiveFocusTask(null)}
                 onToggleSubtask={handleToggleSubtask}
                 onCompleteTask={handleToggleTask}
+                pet={pet}
+                onFeedBerry={handleFeedBerry}
+                streakInfo={streakInfo}
+                ambientNoise={ambientNoise}
+                onToggleAmbient={handleToggleAmbient}
                 isRetroLofiActive={isRetroLofiActive}
                 onToggleRetroLofi={handleToggleRetroLofi}
                 onOpenMusicTab={() => setCurrentTab('music')}

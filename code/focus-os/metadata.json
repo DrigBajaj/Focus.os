@@ -1,5 +1,5 @@
 {
-  "name": "Cozy Pastel Pixel",
+  "name": "focus.os",
   "description": "Tactile retro handheld focus & mindfulness companion with adaptive 'What should I do now?' planning, AI task breakdown, Spotify/Apple Music focus controller, recurring routines, and digital pocket buddy.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

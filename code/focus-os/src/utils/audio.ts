@@ -4,20 +4,27 @@
  */
 
 let audioCtx: AudioContext | null = null;
-let ambientOsc: OscillatorNode | null = null;
-let ambientGain: GainNode | null = null;
-let ambientFilter: BiquadFilterNode | null = null;
+let ambientRainSource: AudioBufferSourceNode | null = null;
+let ambientRainGain: GainNode | null = null;
+let ambientRainFilterLow: BiquadFilterNode | null = null;
+let ambientRainFilterHigh: BiquadFilterNode | null = null;
+let ambientRainDropletTimer: NodeJS.Timeout | null = null;
+let ambientRainCleanupTimer: NodeJS.Timeout | null = null;
+let isAmbientRainActive = false;
+let cachedRainBuffer: AudioBuffer | null = null;
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
   if (!audioCtx) {
-    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (AudioContextClass) {
       audioCtx = new AudioContextClass();
     }
   }
   if (audioCtx && audioCtx.state === 'suspended') {
-    audioCtx.resume();
+    audioCtx.resume().catch(() => {});
   }
   return audioCtx;
 }
@@ -158,61 +165,180 @@ export function playVictoryFanfare(soundEnabled: boolean = true) {
   }
 }
 
+function createRainAudioBuffer(ctx: AudioContext): AudioBuffer {
+  if (cachedRainBuffer && cachedRainBuffer.sampleRate === ctx.sampleRate) {
+    return cachedRainBuffer;
+  }
+  const sampleRate = ctx.sampleRate;
+  const duration = 5.0; // 5-second seamless loop
+  const length = Math.floor(sampleRate * duration);
+  const buffer = ctx.createBuffer(2, length, sampleRate);
+
+  for (let channel = 0; channel < 2; channel++) {
+    const data = buffer.getChannelData(channel);
+    // Paul Kellet's Pink Noise Filter + Brown Noise warmth
+    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+    let brown = 0;
+
+    for (let i = 0; i < length; i++) {
+      const white = Math.random() * 2 - 1;
+      b0 = 0.99886 * b0 + white * 0.0555179;
+      b1 = 0.99332 * b1 + white * 0.0750759;
+      b2 = 0.96900 * b2 + white * 0.1538520;
+      b3 = 0.86650 * b3 + white * 0.3104856;
+      b4 = 0.55000 * b4 + white * 0.5329522;
+      b5 = -0.7616 * b5 - white * 0.0168980;
+      const pink = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+      b6 = white * 0.115926;
+
+      brown = (brown + 0.025 * white) / 1.025;
+
+      // Realistic rain spectrum mix (soothing rain texture with clear acoustic presence)
+      data[i] = pink * 0.15 + brown * 0.45;
+    }
+
+    // Seamless loop smoothing crossfade (first 0.3s and last 0.3s)
+    const fade = Math.floor(sampleRate * 0.3);
+    for (let i = 0; i < fade; i++) {
+      const ratio = i / fade;
+      data[i] = data[i] * ratio + data[length - fade + i] * (1 - ratio);
+    }
+  }
+
+  cachedRainBuffer = buffer;
+  return buffer;
+}
+
+function scheduleOrganicRaindrop(ctx: AudioContext, destination: AudioNode) {
+  if (!isAmbientRainActive) return;
+  try {
+    const osc = ctx.createOscillator();
+    const dropGain = ctx.createGain();
+    const now = ctx.currentTime;
+
+    // Droplet frequencies: 1200Hz - 2800Hz with downward pitch bend
+    const startFreq = 1200 + Math.random() * 1600;
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(startFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(100, startFreq * 0.45), now + 0.04);
+
+    const dropVol = 0.015 + Math.random() * 0.02;
+    dropGain.gain.setValueAtTime(dropVol, now);
+    dropGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
+
+    osc.connect(dropGain);
+    dropGain.connect(destination);
+
+    osc.start(now);
+    osc.stop(now + 0.05);
+  } catch {
+    // Ignore transient audio error
+  }
+}
+
 export function setAmbientWhiteNoise(enable: boolean) {
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
 
+    if (ambientRainCleanupTimer) {
+      clearTimeout(ambientRainCleanupTimer);
+      ambientRainCleanupTimer = null;
+    }
+
     if (!enable) {
-      if (ambientGain) {
-        ambientGain.gain.setTargetAtTime(0, ctx.currentTime, 0.2);
-        setTimeout(() => {
-          if (ambientOsc) {
-            ambientOsc.stop();
-            ambientOsc.disconnect();
-            ambientOsc = null;
+      isAmbientRainActive = false;
+      if (ambientRainDropletTimer) {
+        clearInterval(ambientRainDropletTimer);
+        ambientRainDropletTimer = null;
+      }
+
+      if (ambientRainGain) {
+        // Smoothly fade out over 0.25s
+        try {
+          ambientRainGain.gain.setValueAtTime(ambientRainGain.gain.value, ctx.currentTime);
+          ambientRainGain.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+        } catch {
+          // Ignore
+        }
+
+        ambientRainCleanupTimer = setTimeout(() => {
+          if (!isAmbientRainActive) {
+            if (ambientRainSource) {
+              try {
+                ambientRainSource.stop();
+                ambientRainSource.disconnect();
+              } catch {}
+              ambientRainSource = null;
+            }
+            if (ambientRainGain) {
+              try {
+                ambientRainGain.disconnect();
+              } catch {}
+              ambientRainGain = null;
+            }
           }
-          ambientGain = null;
-          ambientFilter = null;
-        }, 300);
+        }, 280);
       }
       return;
     }
 
-    if (ambientOsc) return; // already active
+    // User wants rain ENABLED
+    isAmbientRainActive = true;
 
-    // Create a cozy brown-noise style soothing rain hum
-    const bufferSize = 2 * ctx.sampleRate;
-    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const output = noiseBuffer.getChannelData(0);
-    let lastOut = 0.0;
-    for (let i = 0; i < bufferSize; i++) {
-      const white = Math.random() * 2 - 1;
-      output[i] = (lastOut + 0.02 * white) / 1.02;
-      lastOut = output[i];
-      output[i] *= 3.5; // boost level
+    // Ensure audio context is running
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
     }
 
-    const whiteNoise = ctx.createBufferSource();
-    whiteNoise.buffer = noiseBuffer;
-    whiteNoise.loop = true;
+    // If source & gain are already active, simply ramp volume back up
+    if (ambientRainSource && ambientRainGain) {
+      try {
+        ambientRainGain.gain.setValueAtTime(ambientRainGain.gain.value, ctx.currentTime);
+        ambientRainGain.gain.linearRampToValueAtTime(0.24, ctx.currentTime + 0.3);
+      } catch {}
+      return;
+    }
 
-    ambientFilter = ctx.createBiquadFilter();
-    ambientFilter.type = 'lowpass';
-    ambientFilter.frequency.setValueAtTime(450, ctx.currentTime);
+    // Create rain nodes
+    const buffer = createRainAudioBuffer(ctx);
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
 
-    ambientGain = ctx.createGain();
-    ambientGain.gain.setValueAtTime(0.001, ctx.currentTime);
-    ambientGain.gain.exponentialRampToValueAtTime(0.07, ctx.currentTime + 0.5);
+    const lowpass = ctx.createBiquadFilter();
+    lowpass.type = 'lowpass';
+    lowpass.frequency.setValueAtTime(3200, ctx.currentTime);
 
-    whiteNoise.connect(ambientFilter);
-    ambientFilter.connect(ambientGain);
-    ambientGain.connect(ctx.destination);
+    const highpass = ctx.createBiquadFilter();
+    highpass.type = 'highpass';
+    highpass.frequency.setValueAtTime(150, ctx.currentTime);
 
-    whiteNoise.start();
-    ambientOsc = whiteNoise as unknown as OscillatorNode;
-  } catch {
-    // Ignore
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.001, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.24, ctx.currentTime + 0.35);
+
+    source.connect(highpass);
+    highpass.connect(lowpass);
+    lowpass.connect(gain);
+    gain.connect(ctx.destination);
+
+    source.start();
+
+    ambientRainSource = source;
+    ambientRainGain = gain;
+    ambientRainFilterLow = lowpass;
+    ambientRainFilterHigh = highpass;
+
+    // Start gentle random raindrop generator
+    if (ambientRainDropletTimer) clearInterval(ambientRainDropletTimer);
+    ambientRainDropletTimer = setInterval(() => {
+      if (isAmbientRainActive && gain) {
+        scheduleOrganicRaindrop(ctx, gain);
+      }
+    }, 450);
+  } catch (err) {
+    console.error('Ambient rain audio error:', err);
   }
 }
 

@@ -7,7 +7,28 @@ export type ScreenTab =
   | 'sensory'
   | 'cartridge';
 
-export type FocusMode = 'deep' | 'sprint' | 'breathe' | 'rest';
+export type FocusMode = 'quest' | 'deep' | 'sprint' | 'breathe' | 'rest';
+
+export type QuestDifficulty = 'Easy' | 'Medium' | 'Hard' | 'Epic';
+
+export interface QuestPhase {
+  id: string;
+  type: 'focus' | 'break';
+  label: string;
+  minutes: number;
+}
+
+export interface FocusQuestConfig {
+  id: string;
+  taskId?: string;
+  title: string;
+  estimatedMinutes: number;
+  difficulty: QuestDifficulty;
+  goalDescription: string;
+  phases: QuestPhase[];
+  xpReward: number;
+  petHappinessReward: number;
+}
 
 export interface Subtask {
   id: string;
