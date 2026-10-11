@@ -30,6 +30,8 @@ import {
 import { loadFontSettings, saveFontSettings, applyFontSettingsToDOM } from './utils/fontSettings';
 import { getCurrentPetStage } from './data/petEvolutions';
 import { calculateDailyStreak, recordStreakTargetMet } from './utils/streak';
+import { ScheduleChangeEvent } from './types';
+import { createScheduleEvent } from './utils/adaptiveScheduler';
 
 export default function App() {
   // Active Screen Tab
@@ -72,6 +74,17 @@ export default function App() {
     const saved = localStorage.getItem('cozy_pixel_tasks_v2');
     return saved ? JSON.parse(saved) : INITIAL_TASKS;
   });
+
+  // Available Time Window (Adaptive Scheduling)
+  const [availableMinutes, setAvailableMinutes] = useState<number>(() => {
+    const saved = localStorage.getItem('cozy_pixel_available_mins');
+    return saved ? JSON.parse(saved) : 30;
+  });
+
+  // Last Schedule Disruption Event for explainable rescheduling
+  const [lastScheduleEvent, setLastScheduleEvent] = useState<ScheduleChangeEvent | null>(() =>
+    createScheduleEvent('initial', 'Schedule initialized based on current priority and duration')
+  );
 
   // Recurring Daily Routines
   const [routines, setRoutines] = useState<RoutineItem[]>(() => {
@@ -173,6 +186,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('cozy_pixel_scratchpad_v2', scratchpad);
   }, [scratchpad]);
+
+  useEffect(() => {
+    localStorage.setItem('cozy_pixel_available_mins', JSON.stringify(availableMinutes));
+  }, [availableMinutes]);
 
   // Ambient rain noise handler
   const handleToggleAmbient = () => {
@@ -341,6 +358,80 @@ export default function App() {
     setCurrentTab('focus');
   };
 
+  // Update Available Window & Trigger Rescheduling
+  const handleUpdateAvailableMinutes = (minutes: number) => {
+    const prev = availableMinutes;
+    setAvailableMinutes(minutes);
+    setLastScheduleEvent(
+      createScheduleEvent('time_changed', `Available time window changed from ${prev}m to ${minutes}m`, {
+        previousMinutes: prev,
+        newMinutes: minutes,
+      })
+    );
+  };
+
+  // Postpone task -> Demotes task and recalculates next best recommendation
+  const handlePostponeTask = (taskId: string) => {
+    const target = tasks.find((t) => t.id === taskId);
+    if (!target) return;
+    const nextCount = (target.postponeCount || 0) + 1;
+
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              status: 'postponed',
+              postponeCount: nextCount,
+              lastPostponedAt: Date.now(),
+            }
+          : t
+      )
+    );
+
+    setLastScheduleEvent(
+      createScheduleEvent(
+        'task_postponed',
+        `"${target.title}" was postponed (${nextCount}x); schedule recalculated`,
+        { taskId, taskTitle: target.title }
+      )
+    );
+  };
+
+  // Interrupt task -> Preserves remaining work and makes task eligible for future recommendations
+  const handleInterruptTask = (taskId: string, elapsedMinutes?: number, remainingMinutes?: number) => {
+    const target = tasks.find((t) => t.id === taskId);
+    if (!target) return;
+    const estimated = target.estimatedMinutes || 25;
+    const currentRemaining = target.remainingMinutes ?? estimated;
+    const finalRemaining =
+      remainingMinutes !== undefined
+        ? Math.max(1, remainingMinutes)
+        : Math.max(1, currentRemaining - (elapsedMinutes || 0));
+
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              status: 'interrupted',
+              remainingMinutes: finalRemaining,
+              interruptedAt: Date.now(),
+              actualMinutesSpent: (t.actualMinutesSpent || 0) + (elapsedMinutes || 0),
+            }
+          : t
+      )
+    );
+
+    setLastScheduleEvent(
+      createScheduleEvent(
+        'task_interrupted',
+        `"${target.title}" interrupted; ~${finalRemaining}m work preserved`,
+        { taskId, taskTitle: target.title, newMinutes: finalRemaining }
+      )
+    );
+  };
+
   // Toggle task complete -> Rewards work XP & Harvests 1 Treat into bag!
   const handleToggleTask = (id: string) => {
     setTasks((prev) =>
@@ -355,7 +446,7 @@ export default function App() {
               const expGain = 15;
               const newExp = p.exp + expGain;
               const nextLevel = newExp >= p.maxExp ? p.level + 1 : p.level;
-              const evolved = nextLevel > p.level;
+              const evolved = nextLevel > prevLevel(p, nextLevel);
 
               if (evolved) {
                 playVictoryFanfare(soundEnabled);
@@ -391,13 +482,34 @@ export default function App() {
               }
               return copy;
             });
+
+            // Trigger Adaptive Rescheduling recalculation for task completion
+            setLastScheduleEvent(
+              createScheduleEvent('task_completed', `Completed "${t.title}"; next priority scheduled`, {
+                taskId: t.id,
+                taskTitle: t.title,
+              })
+            );
+          } else {
+            // Re-opened task
+            setLastScheduleEvent(
+              createScheduleEvent('task_uncompleted', `Re-opened "${t.title}" in schedule`, {
+                taskId: t.id,
+                taskTitle: t.title,
+              })
+            );
           }
-          return { ...t, completed: nextCompleted };
+          return { ...t, completed: nextCompleted, status: nextCompleted ? 'completed' : 'pending' };
         }
         return t;
       })
     );
   };
+
+  // Helper for evolution check
+  function prevLevel(p: PetState, nextLevel: number) {
+    return p.level;
+  }
 
   // Toggle subtask complete
   const handleToggleSubtask = (taskId: string, subtaskId: string) => {
@@ -448,13 +560,23 @@ export default function App() {
       priority,
       deadline,
       estimatedMinutes,
+      remainingMinutes: estimatedMinutes,
       staminaPoints,
       completed: false,
       category,
       subtasks: [],
       createdAt: Date.now(),
+      status: 'pending',
+      postponeCount: 0,
     };
     setTasks((prev) => [newTask, ...prev]);
+
+    setLastScheduleEvent(
+      createScheduleEvent('task_added', `New task added: "${title}"`, {
+        taskId: newTask.id,
+        taskTitle: title,
+      })
+    );
   };
 
   // Delete task
@@ -463,6 +585,11 @@ export default function App() {
     if (activeFocusTask?.id === id) {
       setActiveFocusTask(null);
     }
+    setLastScheduleEvent(
+      createScheduleEvent('task_deleted', 'Task removed from schedule', {
+        taskId: id,
+      })
+    );
   };
 
   // AI Task Decomposition (/api/breakdown)
@@ -788,6 +915,7 @@ export default function App() {
                 isRetroLofiActive={isRetroLofiActive}
                 onToggleRetroLofi={handleToggleRetroLofi}
                 onOpenMusicTab={() => setCurrentTab('music')}
+                onInterruptTask={handleInterruptTask}
               />
             )}
 
@@ -797,6 +925,12 @@ export default function App() {
                 tasks={tasks}
                 onStartFocusOnTask={handleStartFocusOnTask}
                 onBreakdownTask={handleBreakdownTask}
+                onPostponeTask={handlePostponeTask}
+                onInterruptTask={handleInterruptTask}
+                onCompleteTask={handleToggleTask}
+                availableMinutes={availableMinutes}
+                onUpdateAvailableMinutes={handleUpdateAvailableMinutes}
+                lastScheduleEvent={lastScheduleEvent}
                 soundEnabled={soundEnabled}
               />
             )}
@@ -811,6 +945,8 @@ export default function App() {
                 onDeleteTask={handleDeleteTask}
                 onBreakdownTask={handleBreakdownTask}
                 onStartFocusOnTask={handleStartFocusOnTask}
+                onPostponeTask={handlePostponeTask}
+                onInterruptTask={handleInterruptTask}
                 soundEnabled={soundEnabled}
                 isBreakingDownId={isBreakingDownId}
               />
